@@ -30,6 +30,8 @@ class User(SoftDeleteMixin, BaseModel):
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    oauth_provider: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    oauth_provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
     # Relationships
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(  # type: ignore[name-defined]  # noqa: F821

@@ -90,6 +90,18 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: EmailStr = "admin@example.com"
     FIRST_SUPERUSER_PASSWORD: str = "changeme"
 
+    # OAuth2
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    OAUTH_REDIRECT_FRONTEND_URL: str = "http://localhost:3000/auth/callback"
+
+    # Stripe
+    STRIPE_API_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_DEFAULT_PRICE_ID: str = ""
+
     # AI/ML
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""

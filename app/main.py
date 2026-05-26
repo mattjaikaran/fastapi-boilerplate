@@ -2,10 +2,13 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config.settings import settings
 from app.core.exceptions.handlers import register_exception_handlers
 from app.core.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.core.rate_limit import limiter
 
 logger = structlog.get_logger()
 
@@ -20,6 +23,9 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if not settings.is_production else None,
         openapi_url="/openapi.json" if not settings.is_production else None,
     )
+
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     _register_middleware(app)
     _register_routers(app)
