@@ -67,6 +67,8 @@ class AuthService:
         # Send verification email async
         await self._send_verification_otp(user)
 
+        await self._notify(user.id, title="Welcome!", body="Your account has been created. Please verify your email.", type="success")
+
         tokens = await self._create_tokens(user)
         return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
 
@@ -90,6 +92,9 @@ class AuthService:
 
         user.last_login_at = datetime.now(UTC)
         self.db.add(user)
+
+        location = f" from {ip_address}" if ip_address else ""
+        await self._notify(user.id, title="New login", body=f"Your account was accessed{location}.", type="info")
 
         tokens = await self._create_tokens(user, user_agent=user_agent, ip_address=ip_address)
         return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
@@ -208,6 +213,7 @@ class AuthService:
         for token in tokens.scalars().all():
             token.is_revoked = True
             self.db.add(token)
+        await self._notify(user.id, title="Password changed", body="Your password was successfully reset.", type="warning")
 
     async def setup_totp(self, user: User) -> tuple[str, str]:
         secret = pyotp.random_base32()
@@ -272,3 +278,13 @@ class AuthService:
     async def _clear_lockout(self, user_id: uuid.UUID) -> None:
         await self.cache.delete(f"failed_attempts:{user_id}")
         await self.cache.delete(f"lockout:{user_id}")
+
+    async def _notify(self, user_id: uuid.UUID, title: str, body: str | None = None, type: str = "info") -> None:
+        from app.api.notifications.model import NotificationType
+        from app.api.notifications.service import NotificationService
+
+        try:
+            notification_type = NotificationType(type)
+            await NotificationService(self.db).create(user_id=user_id, title=title, body=body, type=notification_type)
+        except Exception:
+            pass  # Notifications are non-critical; never block auth flows

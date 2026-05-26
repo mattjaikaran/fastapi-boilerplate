@@ -14,6 +14,9 @@ logger = structlog.get_logger()
 
 
 def create_app() -> FastAPI:
+    from app.models import register_all_models
+    register_all_models()
+
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,

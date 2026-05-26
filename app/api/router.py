@@ -15,6 +15,7 @@ from app.api.search.router import router as search_router
 from app.api.todos.router import router as todos_router
 from app.api.users.router import router as users_router
 from app.api.webhooks.router import router as webhooks_router
+from app.api.ai.router import router as ai_router  # must be last: imports after models are loaded
 
 api_router = APIRouter(prefix="/api")
 
@@ -33,3 +34,4 @@ api_router.include_router(feature_flags_router)
 api_router.include_router(api_keys_router)
 api_router.include_router(jobs_router)
 api_router.include_router(search_router)
+api_router.include_router(ai_router)

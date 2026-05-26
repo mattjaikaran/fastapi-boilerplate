@@ -123,6 +123,10 @@ class OrganizationService:
         self.db.add(member)
         await self.db.flush()
         await self.db.refresh(member)
+
+        org = await self.get_by_id(org_id)
+        await self._notify(data.user_id, title="Organization invite", body=f"You have been added to {org.name}.")
+
         return member
 
     async def remove_member(
@@ -173,3 +177,12 @@ class OrganizationService:
         membership = await self.get_membership(org_id, user_id)
         if not membership:
             raise ForbiddenError(detail="You are not a member of this organization")
+
+    async def _notify(self, user_id: uuid.UUID, title: str, body: str | None = None) -> None:
+        from app.api.notifications.model import NotificationType
+        from app.api.notifications.service import NotificationService
+
+        try:
+            await NotificationService(self.db).create(user_id=user_id, title=title, body=body, type=NotificationType.info)
+        except Exception:
+            pass

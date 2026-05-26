@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config.settings import settings
 from app.models.base import Base
+from app.models import register_all_models
 
-# Import all models so Alembic can detect them
-import app.models  # noqa: F401
+register_all_models()
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
