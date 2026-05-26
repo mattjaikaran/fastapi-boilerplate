@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+      - run: uv sync
+      - run: uv run ruff check app tests
+      - run: uv run ruff format app tests --check
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+      - run: uv sync
+      - run: uv run mypy app
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync
+      - name: Run tests
+        env:
+          APP_ENV: test
+          SECRET_KEY: ci-secret-key-32-chars-minimum-here
+          JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/app_db_test
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_TASK_ALWAYS_EAGER: "true"
+          RESEND_API_KEY: ""
+        run: uv run pytest --cov=app --cov-report=xml -x
+      - uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.13'
+        with:
+          files: coverage.xml
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build development image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: development
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: production
+          push: false
+          cache-from: type=gha
