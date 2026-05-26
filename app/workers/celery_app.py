@@ -10,6 +10,7 @@ celery_app = Celery(
         "app.workers.tasks.email",
         "app.workers.tasks.notifications",
         "app.workers.tasks.ml",
+        "app.workers.tasks.maintenance",
     ],
 )
 
@@ -29,4 +30,18 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    beat_schedule={
+        "expire-pending-api-keys": {
+            "task": "app.workers.tasks.maintenance.expire_api_keys",
+            "schedule": 3600.0,  # hourly
+        },
+        "cleanup-old-audit-logs": {
+            "task": "app.workers.tasks.maintenance.cleanup_audit_logs",
+            "schedule": 86400.0,  # daily
+        },
+        "cleanup-read-notifications": {
+            "task": "app.workers.tasks.maintenance.cleanup_notifications",
+            "schedule": 86400.0,  # daily
+        },
+    },
 )
