@@ -2,13 +2,16 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 
 from app.config.settings import settings
 from app.core.exceptions.handlers import register_exception_handlers
-from app.core.middleware import LoggingMiddleware, RequestIDMiddleware, SecurityHeadersMiddleware
-from app.core.rate_limit import limiter
+from app.core.middleware import (
+    LoggingMiddleware,
+    RateLimitMiddleware,
+    RequestIDMiddleware,
+    ResponseEnvelopeMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 logger = structlog.get_logger()
 
@@ -27,9 +30,6 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if not settings.is_production else None,
     )
 
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
     _register_middleware(app)
     _register_routers(app)
     _register_events(app)
@@ -47,6 +47,8 @@ def _register_middleware(app: FastAPI) -> None:
 
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(ResponseEnvelopeMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(

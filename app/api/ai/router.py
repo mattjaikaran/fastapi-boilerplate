@@ -1,18 +1,15 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.api.ai.schemas import ChatRequest, ChatResponse, StructuredRequest, StructuredResponse
 from app.api.auth.dependencies import CurrentUser
-from app.core.rate_limit import limiter
 from app.services.ai.anthropic_client import AnthropicService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 @router.post("/chat", response_model=ChatResponse)
-@limiter.limit("20/minute")
 async def chat(
-    request: Request,
     body: ChatRequest,
     _: CurrentUser,
 ) -> ChatResponse:
@@ -30,18 +27,12 @@ async def chat(
 
 
 @router.post("/structured", response_model=StructuredResponse)
-@limiter.limit("10/minute")
 async def structured_chat(
-    request: Request,
     body: StructuredRequest,
     _: CurrentUser,
 ) -> StructuredResponse:
     """Chat with structured JSON output validated against a provided JSON Schema."""
-    from pydantic import create_model
-
     try:
-        # Build a dynamic Pydantic model from the provided schema so we can
-        # validate the output without callers needing to register their own types.
         DynamicModel = _schema_to_model(body.output_schema)
         messages = [{"role": m.role, "content": m.content} for m in body.messages]
         result = await AnthropicService.structured_output(
@@ -59,9 +50,7 @@ async def structured_chat(
 
 
 @router.post("/stream")
-@limiter.limit("10/minute")
 async def stream_chat(
-    request: Request,
     body: ChatRequest,
     _: CurrentUser,
 ) -> StreamingResponse:

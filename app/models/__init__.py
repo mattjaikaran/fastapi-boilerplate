@@ -20,4 +20,5 @@ def register_all_models() -> None:
     from app.api.organizations.model import Organization, OrganizationMember  # noqa: F401
     from app.api.todos.model import Todo  # noqa: F401
     from app.api.users.model import User  # noqa: F401
+    from app.api.auth.webauthn_model import WebAuthnCredential  # noqa: F401
     from app.api.webhooks.model import WebhookEvent  # noqa: F401

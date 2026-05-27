@@ -78,3 +78,31 @@ class MagicLinkRequest(BaseModel):
 
 class MagicLinkVerifyRequest(BaseModel):
     token: str
+
+
+# --- WebAuthn / Passkeys ---
+
+class WebAuthnBeginRegistrationRequest(BaseModel):
+    device_name: str | None = None
+
+
+class WebAuthnCompleteRegistrationRequest(BaseModel):
+    credential: dict
+    device_name: str | None = None
+
+
+class WebAuthnCredentialResponse(BaseModel):
+    id: str
+    device_name: str | None
+    created_at: str
+    last_used_at: str | None
+    backup_eligible: bool
+
+
+class WebAuthnBeginAuthRequest(BaseModel):
+    email: EmailStr
+
+
+class WebAuthnCompleteAuthRequest(BaseModel):
+    email: EmailStr
+    credential: dict

@@ -222,10 +222,9 @@ openapi-serve: ## Serve OpenAPI docs
 	@echo "ReDoc: http://localhost:8000/redoc"
 
 bruno-export: openapi-export ## Generate Bruno collection from OpenAPI spec
-	@command -v npx >/dev/null 2>&1 || (echo "npx not found — install Node.js first" && exit 1)
-	@mkdir -p docs/bruno
-	npx --yes openapi-to-bruno docs/openapi.json docs/bruno
-	@echo "✓ Bruno collection saved to docs/bruno/ — import via Bruno > Open Collection"
+	@echo "✓ OpenAPI spec at docs/openapi.json — import into Bruno via:"
+	@echo "  Bruno desktop → Import Collection → OpenAPI v3 → select docs/openapi.json"
+	@echo "  Or: npx @usebruno/cli openapi-import docs/openapi.json docs/bruno (Bruno CLI ≥ 1.x)"
 
 postman-export: openapi-export ## Generate Postman collection from OpenAPI spec
 	@command -v npx >/dev/null 2>&1 || (echo "npx not found — install Node.js first" && exit 1)

@@ -86,6 +86,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_DEFAULT: str = "100/minute"
 
+    # WebAuthn
+    WEBAUTHN_RP_ID: str = "localhost"
+    WEBAUTHN_RP_NAME: str = "FastAPI App"
+    WEBAUTHN_ORIGIN: str = "http://localhost:3000"
+
     # Admin
     FIRST_SUPERUSER_EMAIL: EmailStr = "admin@example.com"
     FIRST_SUPERUSER_PASSWORD: str = "changeme"

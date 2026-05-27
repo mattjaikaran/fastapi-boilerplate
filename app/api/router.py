@@ -4,6 +4,7 @@ from app.api.api_keys.router import router as api_keys_router
 from app.api.audit.router import router as audit_router
 from app.api.auth.oauth import router as oauth_router
 from app.api.auth.router import router as auth_router
+from app.api.auth.webauthn_router import router as webauthn_router
 from app.api.billing.router import router as billing_router
 from app.api.feature_flags.router import router as feature_flags_router
 from app.api.files.router import router as files_router
@@ -25,6 +26,7 @@ api_router = APIRouter(prefix="/api")
 api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(oauth_router)
+api_router.include_router(webauthn_router)
 api_router.include_router(users_router)
 api_router.include_router(todos_router)
 api_router.include_router(files_router)

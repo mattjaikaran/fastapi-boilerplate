@@ -23,7 +23,6 @@ from app.api.auth.service import AuthService
 from app.api.users.schemas import UserResponse
 from app.config.database import DBSession
 from app.core.exceptions.auth import InvalidCredentialsError
-from app.core.rate_limit import limiter
 from app.core.security import get_password_hash, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -37,13 +36,11 @@ def _get_auth_service(db: DBSession) -> AuthService:
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-@limiter.limit("10/minute")
-async def register(request: Request, body: RegisterRequest, db: DBSession) -> AuthResponse:
+async def register(body: RegisterRequest, db: DBSession) -> AuthResponse:
     return await _get_auth_service(db).register(body)
 
 
 @router.post("/login", response_model=AuthResponse)
-@limiter.limit("10/minute")
 async def login(request: Request, body: LoginRequest, db: DBSession) -> AuthResponse:
     service = _get_auth_service(db)
     user_agent = request.headers.get("User-Agent")
@@ -63,31 +60,27 @@ async def logout(body: RefreshTokenRequest, db: DBSession) -> MessageResponse:
 
 
 @router.post("/request-otp", response_model=MessageResponse)
-@limiter.limit("5/minute")
-async def request_otp(request: Request, body: RequestOTPRequest, db: DBSession) -> MessageResponse:
+async def request_otp(body: RequestOTPRequest, db: DBSession) -> MessageResponse:
     purpose = OTPPurpose(body.purpose)
     await _get_auth_service(db).request_otp(body.email, purpose)
     return MessageResponse(message="OTP sent if email is registered")
 
 
 @router.post("/verify-otp", response_model=MessageResponse)
-@limiter.limit("10/minute")
-async def verify_otp(request: Request, body: VerifyOTPRequest, db: DBSession) -> MessageResponse:
+async def verify_otp(body: VerifyOTPRequest, db: DBSession) -> MessageResponse:
     purpose = OTPPurpose(body.purpose)
     await _get_auth_service(db).verify_otp(body.email, body.code, purpose)
     return MessageResponse(message="OTP verified successfully")
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-@limiter.limit("5/minute")
-async def forgot_password(request: Request, body: ForgotPasswordRequest, db: DBSession) -> MessageResponse:
+async def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> MessageResponse:
     await _get_auth_service(db).forgot_password(body.email)
     return MessageResponse(message="Reset code sent if email is registered")
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-@limiter.limit("5/minute")
-async def reset_password(request: Request, body: ResetPasswordRequest, db: DBSession) -> MessageResponse:
+async def reset_password(body: ResetPasswordRequest, db: DBSession) -> MessageResponse:
     parts = body.token.split(":", 1)
     if len(parts) != 2:
         raise InvalidCredentialsError(detail="Invalid reset token format")
@@ -115,19 +108,13 @@ async def get_me(current_user: CurrentUser) -> UserResponse:
 
 
 @router.post("/magic-link/request", response_model=MessageResponse)
-@limiter.limit("5/minute")
-async def request_magic_link(
-    request: Request, body: MagicLinkRequest, db: DBSession
-) -> MessageResponse:
+async def request_magic_link(body: MagicLinkRequest, db: DBSession) -> MessageResponse:
     await _get_auth_service(db).request_magic_link(body.email)
     return MessageResponse(message="Magic link sent if email is registered")
 
 
 @router.post("/magic-link/verify", response_model=AuthResponse)
-@limiter.limit("10/minute")
-async def verify_magic_link(
-    request: Request, body: MagicLinkVerifyRequest, db: DBSession
-) -> AuthResponse:
+async def verify_magic_link(body: MagicLinkVerifyRequest, db: DBSession) -> AuthResponse:
     return await _get_auth_service(db).verify_magic_link(body.token)
 
 

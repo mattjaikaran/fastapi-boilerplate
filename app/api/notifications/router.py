@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 from app.api.auth.dependencies import CurrentUser
 from app.api.notifications.schemas import (
@@ -10,7 +10,6 @@ from app.api.notifications.schemas import (
 )
 from app.api.notifications.service import NotificationService
 from app.config.database import DBSession
-from app.core.rate_limit import limiter
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -20,9 +19,7 @@ def _svc(db: DBSession) -> NotificationService:
 
 
 @router.get("", response_model=NotificationListResponse)
-@limiter.limit("60/minute")
 async def list_notifications(
-    request: Request,
     current_user: CurrentUser,
     db: DBSession,
     page: int = 1,
@@ -40,9 +37,7 @@ async def list_notifications(
 
 
 @router.post("/mark-read", status_code=200)
-@limiter.limit("30/minute")
 async def mark_read(
-    request: Request,
     body: MarkReadRequest,
     current_user: CurrentUser,
     db: DBSession,
@@ -52,16 +47,13 @@ async def mark_read(
 
 
 @router.post("/mark-all-read", status_code=200)
-@limiter.limit("10/minute")
-async def mark_all_read(request: Request, current_user: CurrentUser, db: DBSession) -> dict:
+async def mark_all_read(current_user: CurrentUser, db: DBSession) -> dict:
     count = await _svc(db).mark_all_read(current_user.id)
     return {"marked_read": count}
 
 
 @router.delete("/{notification_id}", status_code=204)
-@limiter.limit("30/minute")
 async def delete_notification(
-    request: Request,
     notification_id: uuid.UUID,
     current_user: CurrentUser,
     db: DBSession,

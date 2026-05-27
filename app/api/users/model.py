@@ -46,6 +46,9 @@ class User(SoftDeleteMixin, BaseModel):
     files: Mapped[list["FileUpload"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "FileUpload", back_populates="user", cascade="all, delete-orphan"
     )
+    webauthn_credentials: Mapped[list["WebAuthnCredential"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "WebAuthnCredential", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def full_name(self) -> str:
@@ -62,5 +65,6 @@ class User(SoftDeleteMixin, BaseModel):
 
 # Import here to avoid circular dependency
 from app.api.auth.model import OTPCode, RefreshToken  # noqa: E402, F401
+from app.api.auth.webauthn_model import WebAuthnCredential  # noqa: E402, F401
 from app.api.files.model import FileUpload  # noqa: E402, F401
 from app.api.todos.model import Todo  # noqa: E402, F401
