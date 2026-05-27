@@ -19,7 +19,10 @@ class Todo(BaseModel):
     __tablename__ = "todos"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -27,7 +30,9 @@ class Todo(BaseModel):
     priority: Mapped[TodoPriority] = mapped_column(
         Enum(TodoPriority), default=TodoPriority.medium, nullable=False
     )
-    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     user: Mapped["User"] = relationship("User", back_populates="todos")  # type: ignore[name-defined]  # noqa: F821
 

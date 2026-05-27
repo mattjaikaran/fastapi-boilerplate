@@ -1,7 +1,5 @@
 import hashlib
-import random
 import secrets
-import string
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -20,10 +18,8 @@ from app.api.users.model import User
 from app.api.users.schemas import UserResponse
 from app.api.users.service import UserService
 from app.config.settings import settings
-from app.core.exceptions import ConflictError, NotFoundError
 from app.core.exceptions.auth import (
     AccountLockedError,
-    EmailNotVerifiedError,
     InvalidCredentialsError,
     InvalidOTPError,
     InvalidTokenError,
@@ -31,7 +27,6 @@ from app.core.exceptions.auth import (
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    decode_token,
     get_password_hash,
     verify_password,
 )
@@ -43,7 +38,7 @@ def _hash_token(token: str) -> str:
 
 
 def _generate_otp(length: int = 6) -> str:
-    return "".join(random.choices(string.digits, k=length))
+    return "".join(secrets.choice("0123456789") for _ in range(length))
 
 
 class AuthService:
@@ -199,6 +194,27 @@ class AuthService:
 
     async def forgot_password(self, email: str) -> None:
         await self.request_otp(email, OTPPurpose.password_reset)
+
+    async def request_magic_link(self, email: str) -> None:
+        """Send a magic link (OTP-backed token) to the user's email."""
+        user = await self.user_service.get_by_email(email)
+        if not user:
+            return  # Don't leak whether email exists
+        await self.request_otp(email, OTPPurpose.magic_link)
+
+    async def verify_magic_link(self, token: str) -> AuthResponse:
+        """Verify a magic link token and return a full auth response."""
+        parts = token.split(":", 1)
+        if len(parts) != 2:
+            raise InvalidTokenError(detail="Invalid magic link token")
+        email, code = parts
+        user = await self.verify_otp(email, code, OTPPurpose.magic_link)
+        if not user.is_email_verified:
+            user.is_email_verified = True
+            self.db.add(user)
+        tokens = await self._create_tokens(user)
+        from app.api.users.schemas import UserResponse
+        return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
 
     async def reset_password(self, email: str, code: str, new_password: str) -> None:
         user = await self.verify_otp(email, code, OTPPurpose.password_reset)

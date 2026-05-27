@@ -21,6 +21,16 @@ class TodoUpdate(BaseModel):
     due_at: datetime | None = None
 
 
+class TodoBulkUpdate(BaseModel):
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
+    is_completed: bool | None = None
+    priority: TodoPriority | None = None
+
+
+class TodoBulkDelete(BaseModel):
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
+
+
 class TodoResponse(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -41,3 +51,12 @@ class TodoListResponse(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class TodoStatsResponse(BaseModel):
+    total: int
+    completed: int
+    pending: int
+    overdue: int
+    due_today: int
+    by_priority: dict[str, int]

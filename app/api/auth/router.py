@@ -7,14 +7,16 @@ from app.api.auth.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
+    MagicLinkRequest,
+    MagicLinkVerifyRequest,
     MessageResponse,
     RefreshTokenRequest,
     RegisterRequest,
     RequestOTPRequest,
     ResetPasswordRequest,
+    TokenResponse,
     TOTPSetupResponse,
     TOTPVerifyRequest,
-    TokenResponse,
     VerifyOTPRequest,
 )
 from app.api.auth.service import AuthService
@@ -23,7 +25,6 @@ from app.config.database import DBSession
 from app.core.exceptions.auth import InvalidCredentialsError
 from app.core.rate_limit import limiter
 from app.core.security import get_password_hash, verify_password
-from app.services.cache import get_cache_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -111,6 +112,23 @@ async def change_password(
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: CurrentUser) -> UserResponse:
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/magic-link/request", response_model=MessageResponse)
+@limiter.limit("5/minute")
+async def request_magic_link(
+    request: Request, body: MagicLinkRequest, db: DBSession
+) -> MessageResponse:
+    await _get_auth_service(db).request_magic_link(body.email)
+    return MessageResponse(message="Magic link sent if email is registered")
+
+
+@router.post("/magic-link/verify", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def verify_magic_link(
+    request: Request, body: MagicLinkVerifyRequest, db: DBSession
+) -> AuthResponse:
+    return await _get_auth_service(db).verify_magic_link(body.token)
 
 
 @router.post("/totp/setup", response_model=TOTPSetupResponse)

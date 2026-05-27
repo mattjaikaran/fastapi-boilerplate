@@ -157,6 +157,7 @@ ignore = [
     "ANN102",  # missing type annotation for cls
     "S101",    # assert statements (used in tests)
     "S104",    # possible binding to all interfaces
+    "B008",    # FastAPI: Query/Depends/Body in default args is the intended pattern
 ]
 
 [tool.ruff.lint.isort]

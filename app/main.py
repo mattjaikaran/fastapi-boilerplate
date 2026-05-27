@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.config.settings import settings
 from app.core.exceptions.handlers import register_exception_handlers
-from app.core.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.core.middleware import LoggingMiddleware, RequestIDMiddleware, SecurityHeadersMiddleware
 from app.core.rate_limit import limiter
 
 logger = structlog.get_logger()
@@ -43,8 +43,12 @@ def create_app() -> FastAPI:
 
 
 def _register_middleware(app: FastAPI) -> None:
+    from starlette.middleware.gzip import GZipMiddleware
+
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(LoggingMiddleware)
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[str(o) for o in settings.CORS_ORIGINS],
