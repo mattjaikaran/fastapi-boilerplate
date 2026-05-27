@@ -104,6 +104,25 @@ async def complete_authentication(
 # ------------------------------------------------------------------
 
 
+@router.get("/credentials", response_model=list[WebAuthnCredentialResponse])
+async def list_credentials(
+    current_user: CurrentUser,
+    db: DBSession,
+) -> list[WebAuthnCredentialResponse]:
+    """List all active passkeys registered for the current user."""
+    credentials = await _svc(db)._credentials_for(current_user)
+    return [
+        WebAuthnCredentialResponse(
+            id=str(c.id),
+            device_name=c.device_name,
+            created_at=c.created_at.isoformat(),
+            last_used_at=c.last_used_at.isoformat() if c.last_used_at else None,
+            backup_eligible=c.backup_eligible,
+        )
+        for c in credentials
+    ]
+
+
 @router.delete("/credentials/{credential_id}", response_model=MessageResponse)
 async def delete_credential(
     credential_id: str,

@@ -140,6 +140,14 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY must be changed in production")
             if self.JWT_SECRET_KEY == "change-me-jwt-secret-key":
                 raise ValueError("JWT_SECRET_KEY must be changed in production")
+            if self.WEBAUTHN_RP_ID in ("localhost", "127.0.0.1"):
+                raise ValueError(
+                    "WEBAUTHN_RP_ID must be set to your production domain (not localhost)"
+                )
+            if self.WEBAUTHN_ORIGIN.startswith("http://"):
+                raise ValueError(
+                    "WEBAUTHN_ORIGIN must use https:// in production"
+                )
         return self
 
 
