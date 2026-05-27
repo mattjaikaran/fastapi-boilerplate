@@ -32,6 +32,21 @@ class NotificationService:
         self.db.add(n)
         await self.db.flush()
         await self.db.refresh(n)
+
+        # Push to any active WebSocket connections for this user
+        from app.api.ws.manager import ws_manager
+        await ws_manager.send(user_id, {
+            "event": "notification",
+            "data": {
+                "id": str(n.id),
+                "type": n.type.value,
+                "title": n.title,
+                "body": n.body,
+                "extra": n.extra,
+                "created_at": n.created_at.isoformat(),
+            },
+        })
+
         return n
 
     async def list_for_user(

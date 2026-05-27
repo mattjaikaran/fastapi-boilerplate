@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.users.model import User
-from app.api.users.schemas import UserAdminUpdate, UserCreate, UserUpdate
+from app.api.users.schemas import UserAdminUpdate, UserCreate, UserResponse, UserUpdate
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import get_password_hash
 
@@ -61,6 +61,44 @@ class UserService:
         user.deleted_at = datetime.now(UTC)
         self.db.add(user)
         await self.db.flush()
+
+    async def get_subscription_info(
+        self, user_id: uuid.UUID
+    ) -> tuple[bool, str | None]:
+        """Return (is_subscribed, plan) joining BillingCustomer → Subscription."""
+        from app.api.billing.model import (  # noqa: PLC0415
+            BillingCustomer,
+            Subscription,
+            SubscriptionStatus,
+        )
+
+        result = await self.db.execute(
+            select(Subscription.plan, Subscription.status)
+            .join(BillingCustomer, BillingCustomer.id == Subscription.customer_id)
+            .where(
+                BillingCustomer.user_id == user_id,
+                Subscription.status.in_([
+                    SubscriptionStatus.active,
+                    SubscriptionStatus.trialing,
+                ]),
+            )
+            .order_by(Subscription.created_at.desc())
+            .limit(1)
+        )
+        row = result.first()
+        if row is None:
+            return False, None
+        return True, row.plan
+
+    async def to_response(self, user: User) -> UserResponse:
+        """Build UserResponse enriched with billing subscription status."""
+        is_subscribed, subscription_plan = await self.get_subscription_info(user.id)
+        return UserResponse(
+            **user.__dict__,
+            full_name=user.full_name,
+            is_subscribed=is_subscribed,
+            subscription_plan=subscription_plan,
+        )
 
     async def list_users(
         self,

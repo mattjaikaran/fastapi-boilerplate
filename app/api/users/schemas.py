@@ -35,6 +35,8 @@ class UserResponse(UserBase):
     last_login_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    is_subscribed: bool = False
+    subscription_plan: str | None = None
 
 
 class UserAdminUpdate(UserUpdate):

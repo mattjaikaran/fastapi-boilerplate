@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter  # noqa: I001
 
 from app.api.api_keys.router import router as api_keys_router
 from app.api.audit.router import router as audit_router
@@ -15,7 +15,10 @@ from app.api.search.router import router as search_router
 from app.api.todos.router import router as todos_router
 from app.api.users.router import router as users_router
 from app.api.webhooks.router import router as webhooks_router
-from app.api.ai.router import router as ai_router  # must be last: imports after models are loaded
+from app.api.ws.router import router as ws_router
+
+# ai_router must be imported last — it triggers deferred model imports
+from app.api.ai.router import router as ai_router  # noqa: I001
 
 api_router = APIRouter(prefix="/api")
 
@@ -34,4 +37,5 @@ api_router.include_router(feature_flags_router)
 api_router.include_router(api_keys_router)
 api_router.include_router(jobs_router)
 api_router.include_router(search_router)
+api_router.include_router(ws_router)
 api_router.include_router(ai_router)

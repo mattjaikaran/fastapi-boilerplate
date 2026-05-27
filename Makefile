@@ -221,11 +221,27 @@ openapi-serve: ## Serve OpenAPI docs
 	@echo "Docs: http://localhost:8000/docs"
 	@echo "ReDoc: http://localhost:8000/redoc"
 
+bruno-export: openapi-export ## Generate Bruno collection from OpenAPI spec
+	@command -v npx >/dev/null 2>&1 || (echo "npx not found — install Node.js first" && exit 1)
+	@mkdir -p docs/bruno
+	npx --yes openapi-to-bruno docs/openapi.json docs/bruno
+	@echo "✓ Bruno collection saved to docs/bruno/ — import via Bruno > Open Collection"
+
+postman-export: openapi-export ## Generate Postman collection from OpenAPI spec
+	@command -v npx >/dev/null 2>&1 || (echo "npx not found — install Node.js first" && exit 1)
+	@mkdir -p docs
+	npx --yes openapi-to-postmanv2 -s docs/openapi.json -o docs/postman_collection.json -p
+	@echo "✓ Postman collection saved to docs/postman_collection.json"
+
 # =============================================================================
 # ADMIN
 # =============================================================================
 create-superuser: ## Create a superuser account
 	$(UV) run python scripts/create_superuser.py
+
+generate: ## Scaffold a new feature module (usage: make generate MODULE=payments)
+	@[ -n "$(MODULE)" ] || (echo "Usage: make generate MODULE=<name>" && exit 1)
+	$(UV) run python scripts/generate_module.py $(MODULE)
 
 # =============================================================================
 # DEPENDENCIES
