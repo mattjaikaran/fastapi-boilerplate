@@ -1,431 +1,546 @@
 # FastAPI Boilerplate
 
-Production-ready FastAPI + PostgreSQL boilerplate. Async SQLAlchemy, Alembic, Redis, Celery, Stripe, OAuth2, full auth system, audit logging, feature flags, WebSocket-ready, and comprehensive tests — wired up and ready to ship.
+Production-ready FastAPI + PostgreSQL backend. Async-first, batteries included — auth, billing, background jobs, observability, and a full test suite ready to ship.
+
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
+[![SQLAlchemy 2](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://docs.sqlalchemy.org/)
+[![uv](https://img.shields.io/badge/uv-package--manager-blueviolet)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/badge/linting-ruff-orange)](https://github.com/astral-sh/ruff)
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Client["Client Layer"]
+        WEB[Web / Mobile]
+        CLI[CLI / Scripts]
+    end
+
+    subgraph Gateway["API Gateway"]
+        CORS[CORS]
+        RL[Rate Limiter]
+        AUTH_MW[Auth Middleware]
+    end
+
+    subgraph App["FastAPI Application"]
+        direction TB
+        ROUTER[API Router]
+        subgraph Modules["18 Route Modules"]
+            AUTH[auth]
+            USERS[users]
+            ORGS[organizations]
+            BILLING[billing]
+            FF[feature_flags]
+            NOTIF[notifications]
+            AI[ai]
+            OTHER[+ 11 more]
+        end
+        SERVICES[Service Layer]
+        MODELS[SQLAlchemy Models]
+    end
+
+    subgraph Infra["Infrastructure"]
+        PG[(PostgreSQL 17)]
+        REDIS[(Redis 7)]
+        S3[(S3 / Local)]
+        STRIPE[Stripe]
+        RESEND[Resend Email]
+    end
+
+    subgraph Workers["Background Workers"]
+        CELERY[Celery Worker]
+        BEAT[Celery Beat]
+        QUEUES[email · notifications · ml · webhooks]
+    end
+
+    subgraph Observability["Observability"]
+        OTEL[OpenTelemetry]
+        SENTRY[Sentry]
+        PROM[Prometheus /metrics]
+        LOGS[structlog JSON]
+    end
+
+    Client --> Gateway
+    Gateway --> App
+    ROUTER --> Modules
+    Modules --> SERVICES
+    SERVICES --> MODELS
+    MODELS --> PG
+    SERVICES --> REDIS
+    SERVICES --> S3
+    SERVICES --> STRIPE
+    SERVICES --> RESEND
+    App --> Workers
+    App --> Observability
+```
+
+---
 
 ## Tech Stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Framework | **FastAPI** + Uvicorn | ASGI, async-first, auto OpenAPI docs |
-| ORM | **SQLAlchemy 2** (async) + Alembic | Type-safe, async, full migration history |
-| Database | **PostgreSQL** via asyncpg | Async driver, production-grade |
-| Cache | **Redis** (asyncio) | Distributed cache, lockout, session data |
-| Task Queue | **Celery** + Redis | Background jobs, email, cron |
-| Auth | JWT + argon2/bcrypt + TOTP + OAuth2 | Every modern auth pattern covered |
-| Payments | **Stripe** | Checkout, portal, webhooks |
-| Email | **Resend** | Transactional email with queue |
-| Storage | **Local / S3** | Configurable via `STORAGE_DRIVER` |
-| Observability | **OpenTelemetry** + Sentry + Prometheus | Traces, errors, metrics |
-| Logging | **structlog** | Structured JSON logs in production |
-| Admin | **SQLAdmin** | Auto-generated admin panel at `/admin` |
-| Package manager | **uv** | Fast installs, lockfile |
-
-## Feature Overview
-
-| Feature | Status |
+| Layer | Choice |
 |---|---|
-| Email/password auth | ✓ |
-| JWT access + refresh tokens (rotation) | ✓ |
-| OTP codes (email verification, password reset, 2FA) | ✓ |
-| Magic link (passwordless) | ✓ |
-| TOTP (authenticator app 2FA) | ✓ |
-| Google + GitHub OAuth2 | ✓ |
-| Account lockout (brute-force protection) | ✓ |
-| API key authentication | ✓ |
-| RBAC (user / admin / superuser roles) | ✓ |
-| Rate limiting (per-endpoint) | ✓ |
-| Organizations + multi-tenancy | ✓ |
-| Feature flags (boolean, percentage, A/B) | ✓ |
-| Audit logging | ✓ |
-| File uploads (local + S3) | ✓ |
-| Background email queue | ✓ |
-| Celery workers + beat scheduler | ✓ |
-| Stripe checkout + portal + webhooks | ✓ |
-| Notifications system | ✓ |
-| Webhook event delivery | ✓ |
-| Full-text search | ✓ |
-| AI/ML task queue | ✓ |
-| Prometheus metrics endpoint | ✓ |
-| OpenTelemetry distributed tracing | ✓ |
-| Sentry error tracking | ✓ |
-| GZip response compression | ✓ |
-| Security headers | ✓ |
-| Graceful shutdown | ✓ |
-| SQLAdmin panel | ✓ |
-| Health check endpoints | ✓ |
-| Swagger UI (dev only) | ✓ |
+| Framework | **FastAPI** + Uvicorn (ASGI) |
+| ORM | **SQLAlchemy 2** async + Alembic |
+| Database | **PostgreSQL 17** via asyncpg |
+| Cache / Queue | **Redis 7** (asyncio) |
+| Task Queue | **Celery** + Redis broker |
+| Auth | JWT + bcrypt + TOTP + OAuth2 + WebAuthn |
+| Payments | **Stripe** (checkout, portal, webhooks) |
+| Email | **Resend** |
+| File Storage | **Local / S3** (configurable) |
+| AI | Anthropic + OpenAI clients |
+| Observability | OpenTelemetry + Sentry + Prometheus |
+| Logging | **structlog** (JSON in production) |
+| Admin | **SQLAdmin** at `/admin` |
+| Package Manager | **uv** |
+| Linting | **Ruff** (strict, 11 rule categories) |
+| Type Checking | **mypy** (strict) |
+
+---
+
+## Features
+
+| Category | Feature |
+|---|---|
+| **Auth** | Email/password, JWT access + refresh (rotation), OTP, magic link, TOTP (authenticator app) |
+| **Auth** | Google + GitHub OAuth2, WebAuthn / passkeys, API key auth |
+| **Auth** | Account lockout (brute-force), per-endpoint rate limiting |
+| **Access Control** | RBAC — user / admin / superuser roles |
+| **Multi-tenancy** | Organizations + member roles (owner / admin / member) |
+| **Payments** | Stripe checkout, billing portal, webhook handler, subscription tracking |
+| **Background Jobs** | Celery workers + beat scheduler, job tracking API |
+| **Notifications** | In-app notifications + async delivery queue |
+| **Webhooks** | Outbound webhook delivery system |
+| **Feature Flags** | Boolean, percentage rollout, A/B variants |
+| **File Uploads** | Multipart upload, local or S3 storage |
+| **Search** | Full-text cross-entity search |
+| **Audit** | Append-only audit log on all mutations |
+| **AI/ML** | Anthropic + OpenAI clients, ML task queue |
+| **Observability** | OTel traces, Sentry errors, Prometheus metrics, structured logs |
+| **Admin** | SQLAdmin panel — auto-generated CRUD for all models |
+| **WebSockets** | Real-time push via ConnectionManager |
+| **Security** | Security headers (HSTS, CSP), GZip, CORS, parameterized queries |
+| **Developer Experience** | Hot reload, factory-boy test fixtures, real-DB integration tests |
+
+---
 
 ## Quick Start
 
 ```bash
-# 1. Clone and install
-git clone <repo> fastapi-boilerplate && cd fastapi-boilerplate
+# 1. Install
+git clone <repo> && cd fastapi-boilerplate
 make setup          # uv sync + copy .env.example → .env
 
-# 2. Start infrastructure
+# 2. Start infrastructure (Docker)
 make up             # postgres + redis
 
-# 3. Initialize database
+# 3. Database
 make migrate        # run Alembic migrations
 make seed           # seed admin + sample data
 
-# 4. Start dev server
+# 4. Run
 make dev
-
-# API:   http://localhost:8000/api/
-# Docs:  http://localhost:8000/docs
-# Admin: http://localhost:8000/admin
 ```
 
-Or run the quickstart (clone-to-running in one command):
+| URL | Description |
+|---|---|
+| `http://localhost:8000/api/` | REST API |
+| `http://localhost:8000/docs` | Swagger UI (dev only) |
+| `http://localhost:8000/redoc` | ReDoc |
+| `http://localhost:8000/admin` | SQLAdmin panel |
+| `http://localhost:8000/metrics` | Prometheus metrics |
+
+Or in one command:
 
 ```bash
-make quickstart
+make quickstart     # setup + up + migrate + seed
 ```
+
+---
 
 ## Project Structure
 
 ```
 app/
-├── main.py                  # FastAPI factory — middleware, routers, events, OTel
+├── main.py                    # FastAPI factory — middleware, events, OTel, Sentry
 ├── config/
-│   ├── settings.py          # Pydantic Settings (env-driven, validated)
-│   └── database.py          # Async SQLAlchemy engine + session factory
+│   ├── settings.py            # Pydantic Settings (env-driven, validated at boot)
+│   └── database.py            # Async SQLAlchemy engine + session factory
 ├── models/
-│   └── base.py              # Base, TimestampMixin, SoftDeleteMixin, UUIDMixin
+│   └── base.py                # BaseModel (UUID PK + timestamps), SoftDeleteMixin
 ├── core/
-│   ├── dependencies/        # Shared FastAPI dependencies
-│   ├── exceptions/          # AppError hierarchy + exception handlers
-│   ├── middleware/          # RequestID, Logging, GZip, SecurityHeaders
-│   ├── pagination/          # Pagination schema + helpers
-│   ├── rate_limit.py        # slowapi limiter
-│   └── security/            # JWT (create/decode), password hash/verify
+│   ├── exceptions/            # AppError hierarchy + exception handlers
+│   ├── middleware/            # RequestID, Logging, SecurityHeaders, RateLimit, Envelope
+│   ├── pagination/            # Page-based pagination schemas
+│   ├── rate_limit.py          # slowapi limiter config
+│   └── security/              # JWT (create/decode), password hash/verify
 ├── services/
-│   ├── base.py              # Abstract CRUDService[M, C, U]
-│   ├── cache.py             # Redis CacheService
-│   ├── email.py             # Resend EmailService
-│   └── storage.py           # Local/S3 StorageService
+│   ├── base.py                # Generic CRUDService[Model, Create, Update]
+│   ├── cache.py               # Redis CacheService
+│   ├── email.py               # Resend EmailService
+│   ├── storage.py             # Local/S3 StorageService
+│   └── ai/                    # Anthropic + OpenAI clients
 ├── api/
-│   ├── router.py            # Top-level APIRouter aggregating all modules
-│   ├── auth/                # register, login, logout, refresh, OTP, TOTP, magic link
-│   ├── users/               # profile, admin CRUD, API key management
-│   ├── todos/               # CRUD, stats, search, bulk ops
-│   ├── organizations/       # CRUD + membership management
-│   ├── billing/             # Stripe checkout, portal, webhook handler
-│   ├── notifications/       # Create, list, mark read
-│   ├── audit/               # Read-only audit log
-│   ├── feature_flags/       # Boolean, percentage, A/B flags
-│   ├── api_keys/            # Key generation + validation
-│   ├── files/               # Multipart upload, serve, delete
-│   ├── jobs/                # Background job tracking
-│   ├── webhooks/            # Outbound webhook delivery
-│   ├── search/              # Full-text cross-entity search
-│   ├── health/              # /live, /ready, /info
-│   └── ai/                  # AI/ML task endpoints
-├── admin/                   # SQLAdmin views + authentication
+│   ├── router.py              # Top-level APIRouter — aggregates all 18 modules
+│   ├── auth/                  # register, login, refresh, OTP, TOTP, magic link, WebAuthn
+│   ├── users/                 # profile CRUD, API key management
+│   ├── organizations/         # orgs + membership
+│   ├── todos/                 # CRUD, search, stats, bulk ops (reference module)
+│   ├── billing/               # Stripe checkout, portal, webhooks
+│   ├── notifications/         # in-app notifications
+│   ├── audit/                 # read-only audit log
+│   ├── feature_flags/         # boolean, percentage, A/B flags
+│   ├── api_keys/              # API key CRUD
+│   ├── files/                 # multipart upload, serve, delete
+│   ├── jobs/                  # background job tracking
+│   ├── webhooks/              # outbound webhook delivery
+│   ├── search/                # full-text search
+│   ├── health/                # /live, /ready, /info
+│   ├── ai/                    # AI/ML endpoints
+│   └── ws/                    # WebSocket endpoint + ConnectionManager
+├── admin/                     # SQLAdmin views + auth
 └── workers/
-    ├── celery_app.py        # Celery app + beat schedule
+    ├── celery_app.py          # Celery app + beat schedule
     └── tasks/
-        ├── email.py         # Async email sending
-        ├── notifications.py # Async notification delivery
-        ├── maintenance.py   # Token cleanup, audit purge
-        └── ml.py            # AI/ML tasks
-migrations/
-├── versions/                # Alembic migration files
-└── env.py                   # Alembic env config
+        ├── email.py           # email delivery tasks
+        ├── notifications.py   # notification delivery tasks
+        ├── maintenance.py     # token cleanup, audit purge (scheduled)
+        ├── ml.py              # AI/ML processing tasks
+        └── webhooks.py        # webhook delivery queue
+
+migrations/                    # Alembic versions (timestamp-named)
 tests/
-├── conftest.py              # Fixtures: db, client, user, admin, auth_headers
-├── factories/               # factory_boy factories for all models
-├── unit/                    # Fast isolated unit tests
-├── integration/             # Tests that hit real DB (NullPool)
-└── e2e/                     # End-to-end user journey tests
+├── conftest.py                # fixtures: db, client, user, admin, auth_headers
+├── factories/                 # factory_boy factories for all models
+├── unit/                      # fast, isolated
+├── integration/               # real DB (NullPool), one per module
+└── e2e/                       # full user journey tests
 scripts/
-├── seed_data.py             # Dev data: admin + users + todos + orgs
-├── create_superuser.py      # Create initial superuser
-├── setup.sh                 # Env setup helper
-└── doctor.sh                # Dev environment validator
+├── seed_data.py               # dev data: admin + users + todos + orgs
+├── create_superuser.py        # provision initial superuser
+├── generate_module.py         # scaffold a new API module (5-file pattern)
+├── setup.sh                   # env setup helper
+└── doctor.sh                  # dev environment validator
 ```
 
-## API Endpoints
+---
+
+## API Reference
 
 ### Auth `/api/auth`
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | /register | — | Register with email + password |
-| POST | /login | — | Login; returns token pair |
-| POST | /refresh | — | Rotate token pair |
-| POST | /logout | — | Revoke refresh token |
-| GET | /me | JWT | Current user profile |
-| POST | /forgot-password | — | Send password reset OTP |
-| POST | /reset-password | — | Reset password with OTP |
-| POST | /change-password | JWT | Change password |
-| POST | /request-otp | — | Request OTP (any purpose) |
-| POST | /verify-otp | — | Verify OTP code |
-| POST | /magic-link/request | — | Send magic link email |
-| POST | /magic-link/verify | — | Authenticate via magic link token |
-| GET | /google | — | Google OAuth redirect |
-| GET | /google/callback | — | Google OAuth callback |
-| GET | /github | — | GitHub OAuth redirect |
-| GET | /github/callback | — | GitHub OAuth callback |
-| POST | /totp/setup | JWT | Generate TOTP secret + QR code |
-| POST | /totp/verify | JWT | Enable TOTP after verifying first code |
+| POST | `/register` | — | Register with email + password |
+| POST | `/login` | — | Returns access + refresh token pair |
+| POST | `/refresh` | — | Rotate token pair (single-use refresh) |
+| POST | `/logout` | JWT | Revoke refresh token |
+| GET | `/me` | JWT | Current user profile |
+| POST | `/forgot-password` | — | Send password reset OTP |
+| POST | `/reset-password` | — | Reset with OTP code |
+| POST | `/change-password` | JWT | Authenticated password change |
+| POST | `/request-otp` | — | Request OTP (any purpose) |
+| POST | `/verify-otp` | — | Verify OTP code |
+| POST | `/magic-link/request` | — | Send magic link email |
+| POST | `/magic-link/verify` | — | Authenticate via token |
+| GET | `/google` | — | Google OAuth2 redirect |
+| GET | `/google/callback` | — | Google OAuth2 callback |
+| GET | `/github` | — | GitHub OAuth2 redirect |
+| GET | `/github/callback` | — | GitHub OAuth2 callback |
+| POST | `/totp/setup` | JWT | Generate TOTP secret + QR code |
+| POST | `/totp/verify` | JWT | Enable TOTP (verify first code) |
+| POST | `/webauthn/register/begin` | JWT | Begin passkey registration |
+| POST | `/webauthn/register/complete` | JWT | Complete passkey registration |
+| POST | `/webauthn/authenticate/begin` | — | Begin passkey authentication |
+| POST | `/webauthn/authenticate/complete` | — | Complete passkey authentication |
+| GET | `/webauthn/credentials` | JWT | List registered passkeys |
 
 ### Users `/api/users`
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | /me | JWT | Get own profile |
-| PATCH | /me | JWT | Update own profile |
-| DELETE | /me | JWT | Soft-delete own account |
-| POST | /me/api-keys | JWT | Create API key |
-| GET | /me/api-keys | JWT | List own API keys |
-| DELETE | /me/api-keys/:id | JWT | Revoke API key |
-| GET | / | Admin | List all users |
-| GET | /:id | Admin | Get user by ID |
-| PATCH | /:id | Admin | Update user |
-| DELETE | /:id | Admin | Soft-delete user |
-
-### Todos `/api/todos`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | / | JWT | List with filtering and pagination |
-| POST | / | JWT | Create todo |
-| GET | /stats | JWT | Aggregated stats (total, completed, overdue, by priority) |
-| GET | /:id | JWT | Get by ID |
-| PATCH | /:id | JWT | Update |
-| DELETE | /:id | JWT | Soft delete |
-| POST | /:id/toggle | JWT | Toggle completion status |
-| PATCH | /bulk | JWT | Bulk update by IDs |
-| POST | /bulk-delete | JWT | Bulk delete by IDs |
-
-Query params for `GET /`: `search`, `priority` (low/medium/high), `completed` (bool), `overdue` (bool), `due_today` (bool), `page`, `limit`.
+| GET | `/me` | JWT | Get own profile |
+| PATCH | `/me` | JWT | Update own profile |
+| DELETE | `/me` | JWT | Soft-delete own account |
+| POST | `/me/api-keys` | JWT | Create API key |
+| GET | `/me/api-keys` | JWT | List own API keys |
+| DELETE | `/me/api-keys/:id` | JWT | Revoke API key |
+| GET | `/` | Admin | List all users (paginated) |
+| GET | `/:id` | Admin | Get user by ID |
+| PATCH | `/:id` | Admin | Update user |
+| DELETE | `/:id` | Admin | Soft-delete user |
 
 ### Organizations `/api/organizations`
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | / | JWT | Create organization |
-| GET | / | JWT | List own organizations |
-| GET | /:id | Member | Get organization |
-| PATCH | /:id | Admin | Update organization |
-| DELETE | /:id | Owner | Delete organization |
-| GET | /:id/members | Member | List members |
-| POST | /:id/members | Admin | Add member |
-| DELETE | /:id/members/:uid | Admin | Remove member |
+| POST | `/` | JWT | Create organization |
+| GET | `/` | JWT | List own organizations |
+| GET | `/:id` | Member | Get organization |
+| PATCH | `/:id` | Org Admin | Update organization |
+| DELETE | `/:id` | Owner | Delete organization |
+| GET | `/:id/members` | Member | List members |
+| POST | `/:id/members` | Org Admin | Add member |
+| DELETE | `/:id/members/:uid` | Org Admin | Remove member |
+
+### Todos `/api/todos` (reference CRUD module)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/` | JWT | List with filters + pagination |
+| POST | `/` | JWT | Create |
+| GET | `/stats` | JWT | Aggregated stats (total, done, overdue, by priority) |
+| GET | `/:id` | JWT | Get by ID |
+| PATCH | `/:id` | JWT | Update |
+| DELETE | `/:id` | JWT | Soft delete |
+| POST | `/:id/toggle` | JWT | Toggle completion |
+| PATCH | `/bulk` | JWT | Bulk update by IDs |
+| POST | `/bulk-delete` | JWT | Bulk delete by IDs |
+
+Query params: `search`, `priority` (low/medium/high), `completed`, `overdue`, `due_today`, `page`, `limit`
 
 ### Billing `/api/billing`
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | /checkout | JWT | Create Stripe checkout session |
-| POST | /portal | JWT | Create billing portal session |
-| POST | /webhook | — | Stripe webhook handler |
-| GET | /subscription | JWT | Get active subscription |
-| DELETE | /subscription | JWT | Cancel subscription |
-
-### Files `/api/files`
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | /upload | JWT | Upload file (multipart/form-data) |
-| GET | /:id | JWT | Get file metadata |
-| DELETE | /:id | JWT | Delete file |
+| POST | `/checkout` | JWT | Create Stripe checkout session |
+| POST | `/portal` | JWT | Create Stripe billing portal |
+| POST | `/webhook` | — | Stripe signed webhook handler |
+| GET | `/subscription` | JWT | Get active subscription |
+| DELETE | `/subscription` | JWT | Cancel subscription |
 
 ### System
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | /api/health/live | — | Liveness probe |
-| GET | /api/health/ready | — | Readiness probe (DB + Redis) |
-| GET | /api/health/info | — | App version + env |
-| GET | /metrics | — | Prometheus metrics |
+| GET | `/api/health/live` | — | Liveness probe |
+| GET | `/api/health/ready` | — | Readiness probe (DB + Redis) |
+| GET | `/api/health/info` | — | App version + environment |
+| GET | `/metrics` | — | Prometheus metrics |
+| GET | `/docs` | — | Swagger UI (dev only) |
+| GET | `/admin` | Admin | SQLAdmin panel |
 
-## Environment Variables
+---
 
-See `.env.example` for the full list. Key variables:
+## Authentication Flows
 
-```bash
-# App
-APP_ENV=development
-SECRET_KEY=<min 32 chars>
-APP_NAME="My API"
+### JWT Flow
 
-# Database
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/app_db
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant DB as Postgres
+    participant R as Redis
 
-# JWT
-JWT_SECRET_KEY=<min 32 chars>
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15
-JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+    C->>A: POST /api/auth/login
+    A->>DB: verify credentials + check lockout
+    A->>DB: store refresh token hash
+    A-->>C: { access_token (15min), refresh_token (7d) }
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+    C->>A: GET /api/todos (Bearer access_token)
+    A-->>C: 200 OK
 
-# Email (Resend)
-RESEND_API_KEY=re_...
-EMAIL_FROM=noreply@yourdomain.com
-
-# OAuth
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-
-# Stripe
-STRIPE_API_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Observability
-SENTRY_DSN=https://...
-OTEL_ENABLED=false
-PROMETHEUS_ENABLED=true
+    Note over C,A: access_token expires
+    C->>A: POST /api/auth/refresh { refresh_token }
+    A->>DB: verify + rotate refresh token
+    A-->>C: new { access_token, refresh_token }
 ```
+
+### Magic Link / OTP Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant R as Redis
+    participant E as Resend Email
+
+    C->>A: POST /api/auth/magic-link/request { email }
+    A->>R: store token (TTL 10min)
+    A->>E: send link email (async via Celery)
+    A-->>C: 200 OK
+
+    C->>A: POST /api/auth/magic-link/verify { token }
+    A->>R: validate + delete token
+    A-->>C: { access_token, refresh_token }
+```
+
+### OAuth2 Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant G as Google/GitHub
+
+    C->>A: GET /api/auth/google
+    A-->>C: 302 → Google OAuth consent
+    C->>G: user consents
+    G->>A: GET /api/auth/google/callback?code=...
+    A->>G: exchange code for profile
+    A->>A: upsert user (oauth_provider + provider_id)
+    A-->>C: 302 → frontend URL + token pair
+```
+
+---
 
 ## Development
 
 ```bash
-make dev          # hot reload (uvicorn --reload)
-make lint         # ruff check
-make lint-fix     # ruff check --fix
-make format       # ruff format
-make typecheck    # mypy
-make test         # pytest (all)
-make test-unit    # unit tests only
-make test-integration  # integration tests (needs DB)
-make test-cov     # with HTML coverage report
+make dev              # hot reload dev server
+make lint             # ruff check
+make lint-fix         # ruff check --fix
+make format           # ruff format
+make typecheck        # mypy
+make test             # all tests
+make test-unit        # unit tests only
+make test-integration # integration (needs DB)
+make test-e2e         # end-to-end flows
+make test-cov         # HTML coverage → htmlcov/
 ```
 
-## Database
+### Database
 
 ```bash
-make migrate          # apply pending migrations
-make migration msg="add foo table"  # generate new migration
-make migrate-down     # rollback one
-make seed             # load dev seed data
-make db-reset         # drop + recreate + migrate (dev only)
+make migrate                       # apply pending migrations
+make migration msg="add x table"   # generate new migration
+make migrate-down                  # rollback one step
+make seed                          # load dev data
+make db-reset                      # drop + recreate + migrate (dev only)
 ```
 
-Seed credentials (all use `password123`):
+Seed accounts (all use `password123`):
 
-- `admin@example.com` (superuser)
-- `alice@example.com`, `bob@example.com`, `charlie@example.com`
+| Email | Role |
+|---|---|
+| `admin@example.com` | superuser |
+| `alice@example.com` | user |
+| `bob@example.com` | user |
+| `charlie@example.com` | user |
 
-### Migrations
-
-Migration files live in `migrations/versions/`. **Never use schema sync in production** — always generate + apply migration files.
+### Adding a Module
 
 ```bash
-# Dev workflow
-make migration msg="add subscription_tiers table"
-make migrate
-
-# Production (run before new binary starts)
-uv run alembic upgrade head
+uv run python scripts/generate_module.py myfeature
 ```
 
-## Authentication
+Scaffolds `app/api/myfeature/` with `model.py`, `schemas.py`, `service.py`, `router.py`, `__init__.py`. See [FEATURE_GENERATION.md](FEATURE_GENERATION.md) for the full workflow.
 
-### JWT Flow
+---
 
-1. `POST /api/auth/login` → `{ tokens: { access_token, refresh_token }, user }`
-2. Use `Authorization: Bearer <access_token>` on protected endpoints
-3. When access token expires, call `POST /api/auth/refresh` with `{ refresh_token }`
-4. Refresh tokens are single-use (rotated on each refresh)
+## Environment Variables
 
-### OTP Flow
+| Variable | Default | Description |
+|---|---|---|
+| `APP_ENV` | `development` | `development` / `production` / `test` |
+| `SECRET_KEY` | — | Min 32 chars, required |
+| `JWT_SECRET_KEY` | — | Min 32 chars, required |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `15` | Access token TTL |
+| `JWT_REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Refresh token TTL |
+| `DATABASE_URL` | `postgresql+asyncpg://...` | Async Postgres URL |
+| `DATABASE_POOL_SIZE` | `20` | SQLAlchemy pool size |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection |
+| `RESEND_API_KEY` | `""` | Email delivery |
+| `GOOGLE_CLIENT_ID` | `""` | Google OAuth |
+| `GITHUB_CLIENT_ID` | `""` | GitHub OAuth |
+| `STRIPE_API_KEY` | `""` | Stripe payments |
+| `STRIPE_WEBHOOK_SECRET` | `""` | Webhook signature verification |
+| `ANTHROPIC_API_KEY` | `""` | Claude AI |
+| `OPENAI_API_KEY` | `""` | OpenAI |
+| `OTEL_ENABLED` | `false` | OpenTelemetry tracing |
+| `SENTRY_DSN` | `""` | Sentry error tracking |
+| `PROMETHEUS_ENABLED` | `true` | Prometheus `/metrics` |
+| `STORAGE_DRIVER` | `local` | `local` or `s3` |
+| `UPLOAD_MAX_SIZE_MB` | `50` | Max upload size |
+| `WEBAUTHN_RP_ID` | `localhost` | Relying party domain |
+| `RATE_LIMIT_DEFAULT` | `100/minute` | Global rate limit |
 
-```bash
-# Request code
-POST /api/auth/request-otp
-{ "email": "user@example.com", "purpose": "email_verification" }
+Full reference: [`.env.example`](.env.example)
 
-# Verify code
-POST /api/auth/verify-otp
-{ "email": "user@example.com", "code": "123456", "purpose": "email_verification" }
-```
-
-Purposes: `email_verification`, `password_reset`, `two_factor`, `magic_link`
-
-### Magic Link
-
-```bash
-# Request link
-POST /api/auth/magic-link/request
-{ "email": "user@example.com" }
-
-# Authenticate
-POST /api/auth/magic-link/verify
-{ "token": "<token-from-email>" }
-```
-
-### API Keys
-
-```bash
-# Create key
-POST /api/users/me/api-keys
-{ "name": "CI/CD key" }
-
-# Use key
-GET /api/auth/me
-X-Api-Key: <key>
-```
+---
 
 ## Docker
 
 ```bash
-make up                           # postgres + redis + api
-make up-celery                    # + Celery worker
-make up-monitoring                # + Celery worker + Flower
+make up                # postgres + redis + api
+make up-celery         # + Celery worker
+make up-monitoring     # + Celery worker + Flower
 make down
 make logs
+make ps
 ```
 
-## Production Build
+Production image:
 
 ```bash
 docker build -t my-api .
-docker run -p 8000:8000 --env-file .env my-api
+docker run -p 8000:8000 --env-file .env.prod my-api
 ```
 
-In `production` mode:
-- Swagger/ReDoc/OpenAPI JSON disabled
-- Structured JSON logging enabled
-- `APP_DEBUG=false`
+In `production` mode: Swagger/ReDoc disabled, JSON logging, debug off, secret key validation enforced.
+
+---
 
 ## Testing
 
+Tests use **real database** (NullPool — no mocked ORM). Factories via `factory_boy`.
+
 ```bash
-make test               # all tests
-make test-unit          # unit tests (fast, isolated)
-make test-integration   # integration tests (needs postgres + redis)
-make test-e2e           # E2E user journey tests
-make test-cov           # with HTML coverage report at htmlcov/index.html
+make test                # all tests
+make test-unit           # fast, isolated
+make test-integration    # hit real Postgres + Redis
+make test-e2e            # full user journeys
+make test-cov            # HTML report → htmlcov/index.html
 ```
 
-Tests use real database (NullPool) — no mocking the ORM. Factories via `factory_boy`.
+Test markers: `unit`, `integration`, `e2e`, `slow`, `smoke`, `ml`
 
-## Performance Notes
+```bash
+uv run pytest -m unit
+uv run pytest -m "integration and not slow"
+```
 
-- **asyncpg** over psycopg2: async I/O, no blocking thread pool
-- **orjson** default response class: ~2x faster JSON serialization
-- **GZip** middleware: ~70% size reduction on JSON responses
-- **structlog** JSON renderer in production: machine-parseable logs
-- **Redis** for cache + lockout + OTP: avoids extra DB round-trips
-- Connection pool: `DATABASE_POOL_SIZE=20`, `DATABASE_MAX_OVERFLOW=40`
+---
 
-## Security Checklist
+## Security
 
-- [x] `SECRET_KEY` min 32 chars, validated on production
-- [x] `JWT_SECRET_KEY` separate from `SECRET_KEY`
-- [x] Passwords hashed with bcrypt
-- [x] Refresh tokens hashed before storage (SHA-256)
-- [x] Account lockout after 5 failed attempts (15 min)
-- [x] Rate limiting on auth endpoints
-- [x] CORS configured via `CORS_ORIGINS`
-- [x] Security headers on all responses
-- [x] API keys hashed before storage
-- [x] SQL injection prevented via SQLAlchemy parameterized queries
-- [x] File upload size capped via `UPLOAD_MAX_SIZE_MB`
-- [x] Stripe webhook signature verified
+- `SECRET_KEY` min 32 chars — validated at boot in production
+- `JWT_SECRET_KEY` separate from `SECRET_KEY`
+- Passwords hashed with **bcrypt**
+- Refresh tokens **hashed** before storage (SHA-256)
+- Account **lockout** after 5 failed attempts (15-min window)
+- Rate limiting on all auth endpoints
+- CORS configured via `CORS_ORIGINS`
+- **Security headers** on all responses (HSTS, CSP, X-Frame-Options)
+- API keys hashed before storage
+- SQL injection prevented via SQLAlchemy parameterized queries
+- File uploads capped at `UPLOAD_MAX_SIZE_MB`
+- Stripe webhook **signature verified** on every event
+
+---
+
+## Performance
+
+- **asyncpg** driver — async I/O, no thread-pool blocking
+- **orjson** default response class — ~2× faster JSON serialization
+- **GZip** middleware — ~70% size reduction on JSON responses
+- **structlog** JSON renderer — machine-parseable in production
+- **Redis** for cache, OTP, lockout — avoids extra DB round-trips
+- Connection pool: `POOL_SIZE=20`, `MAX_OVERFLOW=40`
+
+---
+
+## Further Reading
+
+| Doc | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagrams, middleware stack, data model, service layer |
+| [docs/AUTH.md](docs/AUTH.md) | All auth flows with sequence diagrams, RBAC reference |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, health checks, monitoring |
+| [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
+| [.env.example](.env.example) | All environment variables with descriptions |
