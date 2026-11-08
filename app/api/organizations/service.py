@@ -3,8 +3,12 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.organizations.model import OrgRole, Organization, OrganizationMember
-from app.api.organizations.schemas import InviteMemberRequest, OrganizationCreate, OrganizationUpdate
+from app.api.organizations.model import Organization, OrganizationMember, OrgRole
+from app.api.organizations.schemas import (
+    InviteMemberRequest,
+    OrganizationCreate,
+    OrganizationUpdate,
+)
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 
 
@@ -12,7 +16,9 @@ class OrganizationService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def create(self, owner_id: uuid.UUID, data: OrganizationCreate) -> Organization:
+    async def create(
+        self, owner_id: uuid.UUID, data: OrganizationCreate
+    ) -> Organization:
         existing = await self.db.execute(
             select(Organization).where(Organization.slug == data.slug)
         )
@@ -56,10 +62,15 @@ class OrganizationService:
     ) -> tuple[list[Organization], int]:
         base = (
             select(Organization)
-            .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+            .join(
+                OrganizationMember,
+                OrganizationMember.organization_id == Organization.id,
+            )
             .where(OrganizationMember.user_id == user_id)
         )
-        total = (await self.db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+        total = (
+            await self.db.execute(select(func.count()).select_from(base.subquery()))
+        ).scalar_one()
         orgs = list(
             (
                 await self.db.execute(
@@ -91,7 +102,9 @@ class OrganizationService:
 
     async def list_members(self, org_id: uuid.UUID) -> list[OrganizationMember]:
         result = await self.db.execute(
-            select(OrganizationMember).where(OrganizationMember.organization_id == org_id)
+            select(OrganizationMember).where(
+                OrganizationMember.organization_id == org_id
+            )
         )
         return list(result.scalars().all())
 
@@ -125,7 +138,11 @@ class OrganizationService:
         await self.db.refresh(member)
 
         org = await self.get_by_id(org_id)
-        await self._notify(data.user_id, title="Organization invite", body=f"You have been added to {org.name}.")
+        await self._notify(
+            data.user_id,
+            title="Organization invite",
+            body=f"You have been added to {org.name}.",
+        )
 
         return member
 
@@ -166,7 +183,9 @@ class OrganizationService:
     async def _require_admin(self, org_id: uuid.UUID, user_id: uuid.UUID) -> None:
         membership = await self.get_membership(org_id, user_id)
         if not membership or membership.role not in (OrgRole.owner, OrgRole.admin):
-            raise ForbiddenError(detail="Requires admin or owner role in this organization")
+            raise ForbiddenError(
+                detail="Requires admin or owner role in this organization"
+            )
 
     async def _require_owner(self, org_id: uuid.UUID, user_id: uuid.UUID) -> None:
         membership = await self.get_membership(org_id, user_id)
@@ -178,11 +197,15 @@ class OrganizationService:
         if not membership:
             raise ForbiddenError(detail="You are not a member of this organization")
 
-    async def _notify(self, user_id: uuid.UUID, title: str, body: str | None = None) -> None:
+    async def _notify(
+        self, user_id: uuid.UUID, title: str, body: str | None = None
+    ) -> None:
         from app.api.notifications.model import NotificationType
         from app.api.notifications.service import NotificationService
 
         try:
-            await NotificationService(self.db).create(user_id=user_id, title=title, body=body, type=NotificationType.info)
+            await NotificationService(self.db).create(
+                user_id=user_id, title=title, body=body, type=NotificationType.info
+            )
         except Exception:
             pass

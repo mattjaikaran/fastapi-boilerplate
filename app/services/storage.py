@@ -30,7 +30,9 @@ class StorageService:
         stored_name = f"{file_id}{ext}"
 
         if settings.STORAGE_DRIVER == "s3":
-            url = await self._upload_s3(content, stored_name, file.content_type or "application/octet-stream")
+            url = await self._upload_s3(
+                content, stored_name, file.content_type or "application/octet-stream"
+            )
             storage_path = stored_name
         else:
             storage_path = await self._upload_local(content, stored_name)
@@ -101,7 +103,10 @@ class StorageService:
                 Body=content,
                 ContentType=content_type,
             )
-        endpoint = settings.AWS_S3_ENDPOINT_URL or f"https://s3.{settings.AWS_REGION}.amazonaws.com"
+        endpoint = (
+            settings.AWS_S3_ENDPOINT_URL
+            or f"https://s3.{settings.AWS_REGION}.amazonaws.com"
+        )
         return f"{endpoint}/{settings.AWS_S3_BUCKET}/{key}"
 
     async def _delete_s3(self, key: str) -> None:

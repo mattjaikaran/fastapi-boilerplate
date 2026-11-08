@@ -21,11 +21,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> ORJSONResponse:
         return ORJSONResponse(
             status_code=422,
-            content={"error": "VALIDATION_ERROR", "detail": exc.errors()},
+            content={
+                "error": "VALIDATION_ERROR",
+                "detail": exc.errors(include_context=False),
+            },
         )
 
     @app.exception_handler(IntegrityError)
-    async def integrity_error_handler(_: Request, exc: IntegrityError) -> ORJSONResponse:
+    async def integrity_error_handler(
+        _: Request, exc: IntegrityError
+    ) -> ORJSONResponse:
         await logger.awarning("db_integrity_error", error=str(exc))
         return ORJSONResponse(
             status_code=409,
@@ -37,5 +42,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         await logger.aerror("unhandled_exception", error=str(exc), exc_info=True)
         return ORJSONResponse(
             status_code=500,
-            content={"error": "INTERNAL_ERROR", "detail": "An unexpected error occurred"},
+            content={
+                "error": "INTERNAL_ERROR",
+                "detail": "An unexpected error occurred",
+            },
         )

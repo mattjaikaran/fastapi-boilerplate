@@ -17,7 +17,9 @@ class Organization(BaseModel):
     __tablename__ = "organizations"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    slug: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    slug: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
     plan: Mapped[str] = mapped_column(String(50), default="free", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     owner_id: Mapped[uuid.UUID] = mapped_column(
@@ -28,7 +30,9 @@ class Organization(BaseModel):
         "User", foreign_keys=[owner_id]
     )
     memberships: Mapped[list["OrganizationMember"]] = relationship(
-        "OrganizationMember", back_populates="organization", cascade="all, delete-orphan"
+        "OrganizationMember",
+        back_populates="organization",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

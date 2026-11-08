@@ -13,7 +13,6 @@ build/
 .eggs/
 
 # uv
-uv.lock
 
 # Testing
 .coverage
@@ -42,7 +41,7 @@ docker/postgres/dumps/
 uploads/
 logs/
 *.log
-models/
+/models/
 
 # Docs
 docs/openapi.json

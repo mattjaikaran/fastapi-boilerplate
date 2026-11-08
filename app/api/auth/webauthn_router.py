@@ -53,7 +53,9 @@ async def begin_registration(
     return await _svc(db).begin_registration(current_user)
 
 
-@router.post("/register/complete", response_model=WebAuthnCredentialResponse, status_code=201)
+@router.post(
+    "/register/complete", response_model=WebAuthnCredentialResponse, status_code=201
+)
 async def complete_registration(
     body: WebAuthnCompleteRegistrationRequest,
     current_user: CurrentUser,
@@ -69,7 +71,9 @@ async def complete_registration(
         id=str(credential.id),
         device_name=credential.device_name,
         created_at=credential.created_at.isoformat(),
-        last_used_at=credential.last_used_at.isoformat() if credential.last_used_at else None,
+        last_used_at=credential.last_used_at.isoformat()
+        if credential.last_used_at
+        else None,
         backup_eligible=credential.backup_eligible,
     )
 

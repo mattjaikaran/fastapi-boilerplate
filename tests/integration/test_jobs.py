@@ -1,7 +1,6 @@
 import pytest
 from httpx import AsyncClient
 
-
 ALLOWED_TASK = "app.workers.tasks.email.send_welcome"
 
 

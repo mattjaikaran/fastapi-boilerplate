@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM base AS builder
 
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 # =============================================================================
 # Development
@@ -37,7 +37,7 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen
+RUN uv sync --frozen --no-install-project
 
 COPY . .
 
@@ -70,7 +70,7 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen
+RUN uv sync --frozen --no-install-project
 
 COPY . .
 

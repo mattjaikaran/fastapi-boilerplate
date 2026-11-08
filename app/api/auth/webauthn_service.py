@@ -47,10 +47,7 @@ class WebAuthnService:
     async def begin_registration(self, user: User) -> dict:
         """Generate registration options and cache the challenge."""
         existing: list[WebAuthnCredential] = await self._credentials_for(user)
-        exclude = [
-            PublicKeyCredentialDescriptor(id=c.credential_id)
-            for c in existing
-        ]
+        exclude = [PublicKeyCredentialDescriptor(id=c.credential_id) for c in existing]
 
         options = webauthn.generate_registration_options(
             rp_id=settings.WEBAUTHN_RP_ID,
@@ -66,9 +63,6 @@ class WebAuthnService:
         )
 
         # Persist challenge so /complete can verify it
-        challenge_b64 = webauthn.base64url_to_bytes(
-            webauthn.options_to_json(options)
-        )
         # options_to_json returns JSON string; parse to get raw challenge
         options_dict = json.loads(webauthn.options_to_json(options))
         await self.cache.set(
@@ -90,7 +84,9 @@ class WebAuthnService:
             _challenge_key("register", str(user.id))
         )
         if not challenge_b64:
-            raise InvalidTokenError(detail="Registration challenge expired or not found")
+            raise InvalidTokenError(
+                detail="Registration challenge expired or not found"
+            )
 
         verification = webauthn.verify_registration_response(
             credential=credential_json,
@@ -111,7 +107,9 @@ class WebAuthnService:
             backup_state=verification.credential_backed_up,
             transports=json.dumps(
                 [t.value for t in verification.credential_device_type.__class__]
-            ) if hasattr(verification, "credential_device_type") else None,
+            )
+            if hasattr(verification, "credential_device_type")
+            else None,
         )
         self.db.add(credential)
 
@@ -127,12 +125,11 @@ class WebAuthnService:
         """Generate authentication options and cache the challenge."""
         existing = await self._credentials_for(user)
         if not existing:
-            raise InvalidCredentialsError(detail="No passkeys registered for this account")
+            raise InvalidCredentialsError(
+                detail="No passkeys registered for this account"
+            )
 
-        allow = [
-            PublicKeyCredentialDescriptor(id=c.credential_id)
-            for c in existing
-        ]
+        allow = [PublicKeyCredentialDescriptor(id=c.credential_id) for c in existing]
 
         options = webauthn.generate_authentication_options(
             rp_id=settings.WEBAUTHN_RP_ID,
@@ -159,7 +156,9 @@ class WebAuthnService:
             _challenge_key("auth", str(user.id))
         )
         if not challenge_b64:
-            raise InvalidTokenError(detail="Authentication challenge expired or not found")
+            raise InvalidTokenError(
+                detail="Authentication challenge expired or not found"
+            )
 
         # Look up stored credential by raw credential_id from response
         raw_id_b64 = (
@@ -208,7 +207,9 @@ class WebAuthnService:
         )
         return list(result.scalars().all())
 
-    async def _credential_by_id(self, credential_id: bytes) -> WebAuthnCredential | None:
+    async def _credential_by_id(
+        self, credential_id: bytes
+    ) -> WebAuthnCredential | None:
         result = await self.db.execute(
             select(WebAuthnCredential).where(
                 WebAuthnCredential.credential_id == credential_id

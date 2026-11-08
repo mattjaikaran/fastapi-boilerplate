@@ -74,7 +74,9 @@ async def verify_otp(body: VerifyOTPRequest, db: DBSession) -> MessageResponse:
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-async def forgot_password(body: ForgotPasswordRequest, db: DBSession) -> MessageResponse:
+async def forgot_password(
+    body: ForgotPasswordRequest, db: DBSession
+) -> MessageResponse:
     await _get_auth_service(db).forgot_password(body.email)
     return MessageResponse(message="Reset code sent if email is registered")
 
@@ -114,7 +116,9 @@ async def request_magic_link(body: MagicLinkRequest, db: DBSession) -> MessageRe
 
 
 @router.post("/magic-link/verify", response_model=AuthResponse)
-async def verify_magic_link(body: MagicLinkVerifyRequest, db: DBSession) -> AuthResponse:
+async def verify_magic_link(
+    body: MagicLinkVerifyRequest, db: DBSession
+) -> AuthResponse:
     return await _get_auth_service(db).verify_magic_link(body.token)
 
 

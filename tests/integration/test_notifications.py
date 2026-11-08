@@ -39,7 +39,9 @@ async def test_login_creates_notification(client: AsyncClient, user):
 @pytest.mark.integration
 async def test_mark_read(client: AsyncClient, auth_headers: dict, user):
     # Login again to generate a notification
-    login = await client.post("/api/auth/login", json={"email": user.email, "password": "password123"})
+    login = await client.post(
+        "/api/auth/login", json={"email": user.email, "password": "password123"}
+    )
     token = login.json()["tokens"]["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -59,7 +61,9 @@ async def test_mark_read(client: AsyncClient, auth_headers: dict, user):
 
 @pytest.mark.integration
 async def test_mark_all_read(client: AsyncClient, user):
-    login = await client.post("/api/auth/login", json={"email": user.email, "password": "password123"})
+    login = await client.post(
+        "/api/auth/login", json={"email": user.email, "password": "password123"}
+    )
     token = login.json()["tokens"]["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -70,7 +74,9 @@ async def test_mark_all_read(client: AsyncClient, user):
 
 @pytest.mark.integration
 async def test_unread_only_filter(client: AsyncClient, user):
-    login = await client.post("/api/auth/login", json={"email": user.email, "password": "password123"})
+    login = await client.post(
+        "/api/auth/login", json={"email": user.email, "password": "password123"}
+    )
     token = login.json()["tokens"]["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -82,7 +88,9 @@ async def test_unread_only_filter(client: AsyncClient, user):
 
 @pytest.mark.integration
 async def test_delete_notification(client: AsyncClient, user):
-    login = await client.post("/api/auth/login", json={"email": user.email, "password": "password123"})
+    login = await client.post(
+        "/api/auth/login", json={"email": user.email, "password": "password123"}
+    )
     token = login.json()["tokens"]["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -92,5 +100,7 @@ async def test_delete_notification(client: AsyncClient, user):
         pytest.skip("No notifications to delete")
 
     notification_id = items[0]["id"]
-    response = await client.delete(f"/api/notifications/{notification_id}", headers=headers)
+    response = await client.delete(
+        f"/api/notifications/{notification_id}", headers=headers
+    )
     assert response.status_code == 204

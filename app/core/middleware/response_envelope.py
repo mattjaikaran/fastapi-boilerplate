@@ -55,6 +55,7 @@ class ResponseEnvelopeMiddleware(BaseHTTPMiddleware):
         except Exception:
             # Unparseable JSON — return raw response untouched
             from starlette.responses import Response as _R
+
             return _R(
                 content=body,
                 status_code=response.status_code,
@@ -80,6 +81,7 @@ class ResponseEnvelopeMiddleware(BaseHTTPMiddleware):
         headers["content-type"] = "application/json"
 
         from starlette.responses import Response as _R
+
         return _R(
             content=new_body,
             status_code=response.status_code,

@@ -82,6 +82,7 @@ class MagicLinkVerifyRequest(BaseModel):
 
 # --- WebAuthn / Passkeys ---
 
+
 class WebAuthnBeginRegistrationRequest(BaseModel):
     device_name: str | None = None
 

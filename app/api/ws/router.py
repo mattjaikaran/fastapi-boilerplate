@@ -52,6 +52,7 @@ async def notifications_ws(
     # Verify user is active
     async with async_session_factory() as db:
         from app.api.users.service import UserService
+
         try:
             user = await UserService(db).get_by_id(user_id)
             if not user.is_active:
