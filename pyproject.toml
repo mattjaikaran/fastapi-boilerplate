@@ -84,6 +84,9 @@ mq = [
 vector = [
     "pgvector>=0.3.6",
 ]
+graph = [
+    "neo4j>=5.27.0",
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
