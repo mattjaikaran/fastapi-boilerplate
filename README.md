@@ -185,7 +185,8 @@ app/
 │   ├── cache.py               # Redis CacheService
 │   ├── email.py               # Resend EmailService
 │   ├── storage.py             # Local/S3 StorageService
-│   └── ai/                    # Anthropic + OpenAI clients
+│   ├── ai/                    # Anthropic + OpenAI clients
+│   └── messaging/             # RabbitMQ publish/consume (optional mq extra)
 ├── api/
 │   ├── router.py              # Top-level APIRouter — aggregates all 18 modules
 │   ├── auth/                  # register, login, refresh, OTP, TOTP, magic link, WebAuthn
@@ -545,5 +546,6 @@ uv run pytest -m "integration and not slow"
 | [docs/AUTH.md](docs/AUTH.md) | All auth flows with sequence diagrams, RBAC reference |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, health checks, monitoring |
 | [docs/AI_AGENTS.md](docs/AI_AGENTS.md) | Agent package layout, settings, adding an agent, `ml` queue |
+| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Optional RabbitMQ service, publish/consume helpers, routing keys |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |

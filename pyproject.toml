@@ -79,6 +79,9 @@ dependencies = [
 [project.optional-dependencies]
 # Extra agent frameworks (Pydantic AI, LangGraph) land here in later issues.
 agents = []
+mq = [
+    "aio-pika>=9.4.0",
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
