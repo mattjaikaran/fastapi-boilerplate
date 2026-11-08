@@ -13,68 +13,55 @@ Production-ready FastAPI + PostgreSQL backend. Async-first, batteries included �
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph Client["Client Layer"]
-        WEB[Web / Mobile]
-        CLI[CLI / Scripts]
-    end
+graph LR
+    CLIENT[Client] --> APP[FastAPI app]
+    APP --> PG[(PostgreSQL)]
+    APP --> REDIS[(Redis)]
+    APP --> WORKERS[Celery workers]
+    APP --> EXTERNAL[External services]
+    APP --> OBS[Observability]
+    WORKERS --> REDIS
+    WORKERS --> PG
+```
 
-    subgraph Gateway["API Gateway"]
-        CORS[CORS]
-        RL[Rate Limiter]
-        AUTH_MW[Auth Middleware]
-    end
+### Request Path
 
-    subgraph App["FastAPI Application"]
-        direction TB
-        ROUTER[API Router]
-        subgraph Modules["18 Route Modules"]
-            AUTH[auth]
-            USERS[users]
-            ORGS[organizations]
-            BILLING[billing]
-            FF[feature_flags]
-            NOTIF[notifications]
-            AI[ai]
-            OTHER[+ 11 more]
-        end
-        SERVICES[Service Layer]
-        MODELS[SQLAlchemy Models]
-    end
+```mermaid
+graph LR
+    CLIENT[Client] --> MW["Middleware<br/>CORS · rate limit · auth"]
+    MW --> ROUTER[API router]
+    ROUTER --> SERVICE[Service layer]
+    SERVICE --> MODEL[SQLAlchemy models]
+    MODEL --> PG[(PostgreSQL)]
+```
 
-    subgraph Infra["Infrastructure"]
-        PG[(PostgreSQL 17)]
-        REDIS[(Redis 7)]
-        S3[(S3 / Local)]
-        STRIPE[Stripe]
-        RESEND[Resend Email]
-    end
+### Background Work
 
-    subgraph Workers["Background Workers"]
-        CELERY[Celery Worker]
-        BEAT[Celery Beat]
-        QUEUES[email · notifications · ml · webhooks]
-    end
+```mermaid
+graph LR
+    APP[FastAPI app] -->|enqueue| REDIS[(Redis)]
+    BEAT[Celery beat] -->|schedule| REDIS
+    REDIS --> EMAIL[email]
+    REDIS --> NOTIF[notifications]
+    REDIS --> ML[ml]
+    REDIS --> WEBHOOKS[webhooks]
+    EMAIL --> WORKER[Celery worker]
+    NOTIF --> WORKER
+    ML --> WORKER
+    WEBHOOKS --> WORKER
+```
 
-    subgraph Observability["Observability"]
-        OTEL[OpenTelemetry]
-        SENTRY[Sentry]
-        PROM[Prometheus /metrics]
-        LOGS[structlog JSON]
-    end
+### External Services
 
-    Client --> Gateway
-    Gateway --> App
-    ROUTER --> Modules
-    Modules --> SERVICES
-    SERVICES --> MODELS
-    MODELS --> PG
-    SERVICES --> REDIS
-    SERVICES --> S3
-    SERVICES --> STRIPE
-    SERVICES --> RESEND
-    App --> Workers
-    App --> Observability
+```mermaid
+graph LR
+    APP[FastAPI app] --> STRIPE[Stripe]
+    APP --> RESEND[Resend]
+    APP --> S3[(S3)]
+    APP --> OTEL[OpenTelemetry]
+    APP --> SENTRY[Sentry]
+    APP --> LOGS[structlog]
+    PROM[Prometheus] -->|scrape| APP
 ```
 
 ---
