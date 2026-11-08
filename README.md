@@ -544,5 +544,6 @@ uv run pytest -m "integration and not slow"
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagrams, middleware stack, data model, service layer |
 | [docs/AUTH.md](docs/AUTH.md) | All auth flows with sequence diagrams, RBAC reference |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, health checks, monitoring |
+| [docs/AI_AGENTS.md](docs/AI_AGENTS.md) | Agent package layout, settings, adding an agent, `ml` queue |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |
