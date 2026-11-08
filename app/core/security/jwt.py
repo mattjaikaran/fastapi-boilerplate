@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -8,7 +9,9 @@ from app.core.exceptions.auth import InvalidTokenError
 
 
 def _encode(payload: dict[str, Any]) -> str:
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -24,7 +27,9 @@ def decode_token(token: str) -> dict[str, Any]:
 
 
 def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> str:
-    expire = datetime.now(UTC) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + timedelta(
+        minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     payload: dict[str, Any] = {
         "sub": subject,
         "exp": expire,
@@ -43,5 +48,6 @@ def create_refresh_token(subject: str) -> str:
         "exp": expire,
         "iat": datetime.now(UTC),
         "type": "refresh",
+        "jti": uuid.uuid4().hex,
     }
     return _encode(payload)

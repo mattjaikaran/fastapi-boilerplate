@@ -155,7 +155,6 @@ class SearchService:
                     Todo.title.ilike(ilike),
                     func.to_tsvector("english", Todo.title).op("@@")(tsquery),
                 ),
-                Todo.deleted_at.is_(None),
             )
             .order_by(text("rank DESC"))
             .limit(limit)

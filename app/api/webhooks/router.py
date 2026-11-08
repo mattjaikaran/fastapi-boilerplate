@@ -9,7 +9,6 @@ from app.api.webhooks.model import WebhookEventStatus
 from app.api.webhooks.schemas import WebhookEventListResponse, WebhookEventResponse
 from app.api.webhooks.service import WebhookService
 from app.config.database import DBSession
-from app.config.settings import settings
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -44,7 +43,9 @@ async def receive_webhook(
     signature = x_hub_signature_256 or x_signature or x_webhook_signature
     secret = _get_secret(source)
     svc = WebhookService(db)
-    signature_valid = svc.validate_signature(body, signature, secret or "") if secret else True
+    signature_valid = (
+        svc.validate_signature(body, signature, secret or "") if secret else True
+    )
 
     event_type = (
         x_event_type

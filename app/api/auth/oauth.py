@@ -36,7 +36,9 @@ def _get_redirect_uri(request: Request, provider: str) -> str:
 @router.get("/{provider}")
 async def oauth_login(provider: str, request: Request) -> RedirectResponse:
     if provider not in _SUPPORTED_PROVIDERS:
-        raise HTTPException(status_code=404, detail=f"OAuth provider '{provider}' not supported")
+        raise HTTPException(
+            status_code=404, detail=f"OAuth provider '{provider}' not supported"
+        )
 
     redirect_uri = _get_redirect_uri(request, provider)
     import secrets as _secrets
@@ -56,7 +58,9 @@ async def oauth_login(provider: str, request: Request) -> RedirectResponse:
             "state": state,
             "access_type": "offline",
         }
-        auth_url = _GOOGLE_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+        auth_url = (
+            _GOOGLE_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+        )
 
     elif provider == "github":
         if not settings.GITHUB_CLIENT_ID:
@@ -67,7 +71,9 @@ async def oauth_login(provider: str, request: Request) -> RedirectResponse:
             "scope": "user:email",
             "state": state,
         }
-        auth_url = _GITHUB_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+        auth_url = (
+            _GITHUB_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+        )
 
     return RedirectResponse(url=auth_url)
 
@@ -82,7 +88,9 @@ async def oauth_callback(
     error: str | None = None,
 ) -> RedirectResponse:
     if provider not in _SUPPORTED_PROVIDERS:
-        raise HTTPException(status_code=404, detail=f"OAuth provider '{provider}' not supported")
+        raise HTTPException(
+            status_code=404, detail=f"OAuth provider '{provider}' not supported"
+        )
 
     if error:
         return RedirectResponse(
@@ -106,7 +114,9 @@ async def oauth_callback(
         email, name, provider_id = await _exchange_github(code, redirect_uri)
 
     if not email:
-        raise HTTPException(status_code=400, detail="Could not retrieve email from provider")
+        raise HTTPException(
+            status_code=400, detail="Could not retrieve email from provider"
+        )
 
     user = await _find_or_create_oauth_user(
         db=db,
@@ -125,7 +135,9 @@ async def oauth_callback(
     auth_service = AuthService(db=db, cache=CacheService())
     user_agent = request.headers.get("User-Agent")
     ip_address = request.client.host if request.client else None
-    await auth_service._create_tokens(user, user_agent=user_agent, ip_address=ip_address)
+    await auth_service._create_tokens(
+        user, user_agent=user_agent, ip_address=ip_address
+    )
 
     return RedirectResponse(
         url=f"{settings.OAUTH_REDIRECT_FRONTEND_URL}?access_token={access_token}&refresh_token={refresh_token}"
@@ -207,9 +219,7 @@ async def _find_or_create_oauth_user(
 
     from app.api.users.model import User as UserModel
 
-    result = await db.execute(
-        select(UserModel).where(UserModel.email == email)
-    )
+    result = await db.execute(select(UserModel).where(UserModel.email == email))
     user = result.scalar_one_or_none()
 
     if user:

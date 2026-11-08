@@ -47,7 +47,6 @@ from starlette.responses import JSONResponse, Response
 
 from app.config.settings import settings
 
-
 logger = structlog.get_logger()
 
 _EXCLUDED_PREFIXES: Final = (
@@ -145,6 +144,7 @@ def _extract_user_id(request: Request) -> str | None:
     token = auth[7:]
     try:
         from app.core.security.jwt import decode_token
+
         payload = decode_token(token)
         return payload.get("sub")
     except Exception:
@@ -197,7 +197,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             result = await self._script(  # type: ignore[call-arg]
                 keys=[key], args=[now, window, limit, entry_id]
             )
-            allowed, remaining, reset_at = int(result[0]), int(result[1]), int(result[2])
+            allowed, remaining, reset_at = (
+                int(result[0]),
+                int(result[1]),
+                int(result[2]),
+            )
         except Exception as exc:
             # Fail open — Redis down should not block traffic
             await logger.awarning("rate_limit_redis_error", error=str(exc))

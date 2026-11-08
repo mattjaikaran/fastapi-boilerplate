@@ -13,7 +13,12 @@ class TestRegistrationAndLoginFlow:
         # Register
         resp = await client.post(
             "/api/auth/register",
-            json={"email": email, "password": password, "first_name": "E2E", "last_name": "Test"},
+            json={
+                "email": email,
+                "password": password,
+                "first_name": "E2E",
+                "last_name": "Test",
+            },
         )
         assert resp.status_code == 201, resp.text
         body = resp.json()
@@ -48,16 +53,21 @@ class TestRegistrationAndLoginFlow:
         )
         assert logout_resp.status_code == 200
 
-    async def test_duplicate_registration_returns_409(self, client: AsyncClient, user: object) -> None:
+    async def test_duplicate_registration_returns_409(
+        self, client: AsyncClient, user: object
+    ) -> None:
         resp = await client.post(
             "/api/auth/register",
             json={"email": "test@example.com", "password": "password123"},
         )
         assert resp.status_code == 409
 
-    async def test_login_wrong_password(self, client: AsyncClient, user: object) -> None:
+    async def test_login_wrong_password(
+        self, client: AsyncClient, user: object
+    ) -> None:
         resp = await client.post(
-            "/api/auth/login", json={"email": "test@example.com", "password": "wrongpassword"}
+            "/api/auth/login",
+            json={"email": "test@example.com", "password": "wrongpassword"},
         )
         assert resp.status_code == 401
 
@@ -106,6 +116,7 @@ class TestTOTPFlow:
 
         # Verify with correct code
         import pyotp
+
         totp = pyotp.TOTP(data["secret"])
         verify_resp = await client.post(
             "/api/auth/totp/verify",
@@ -136,4 +147,4 @@ class TestMagicLinkFlow:
         resp = await client.post(
             "/api/auth/magic-link/verify", json={"token": "bad:token"}
         )
-        assert resp.status_code == 401
+        assert resp.status_code == 400

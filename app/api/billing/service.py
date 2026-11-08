@@ -56,7 +56,9 @@ class BillingService:
             cancel_url=data.cancel_url,
             metadata={
                 "user_id": str(user.id),
-                "organization_id": str(data.organization_id) if data.organization_id else "",
+                "organization_id": str(data.organization_id)
+                if data.organization_id
+                else "",
             },
         )
         return session.url, session.id
@@ -80,7 +82,9 @@ class BillingService:
         result = await self.db.execute(
             select(Subscription).where(
                 Subscription.customer_id == billing.id,
-                Subscription.status.in_([SubscriptionStatus.active, SubscriptionStatus.trialing]),
+                Subscription.status.in_(
+                    [SubscriptionStatus.active, SubscriptionStatus.trialing]
+                ),
             )
         )
         return result.scalar_one_or_none()
@@ -106,7 +110,10 @@ class BillingService:
 
         if event_type == "checkout.session.completed":
             await self._handle_checkout_completed(data)
-        elif event_type in ("customer.subscription.updated", "customer.subscription.created"):
+        elif event_type in (
+            "customer.subscription.updated",
+            "customer.subscription.created",
+        ):
             await self._handle_subscription_updated(data)
         elif event_type == "customer.subscription.deleted":
             await self._handle_subscription_deleted(data)
@@ -118,7 +125,9 @@ class BillingService:
             return
 
         result = await self.db.execute(
-            select(BillingCustomer).where(BillingCustomer.stripe_customer_id == customer_id)
+            select(BillingCustomer).where(
+                BillingCustomer.stripe_customer_id == customer_id
+            )
         )
         billing = result.scalar_one_or_none()
         if not billing:
@@ -135,15 +144,21 @@ class BillingService:
             stripe_price_id=stripe_sub["items"]["data"][0]["price"]["id"],
             plan=stripe_sub["items"]["data"][0]["price"].get("nickname") or "pro",
             status=SubscriptionStatus(stripe_sub.status),
-            current_period_start=datetime.fromtimestamp(stripe_sub.current_period_start, tz=UTC),
-            current_period_end=datetime.fromtimestamp(stripe_sub.current_period_end, tz=UTC),
+            current_period_start=datetime.fromtimestamp(
+                stripe_sub.current_period_start, tz=UTC
+            ),
+            current_period_end=datetime.fromtimestamp(
+                stripe_sub.current_period_end, tz=UTC
+            ),
         )
         self.db.add(sub)
         await self.db.flush()
 
     async def _handle_subscription_updated(self, sub_data: dict) -> None:
         result = await self.db.execute(
-            select(Subscription).where(Subscription.stripe_subscription_id == sub_data["id"])
+            select(Subscription).where(
+                Subscription.stripe_subscription_id == sub_data["id"]
+            )
         )
         sub = result.scalar_one_or_none()
         if not sub:
@@ -152,15 +167,21 @@ class BillingService:
         sub.status = SubscriptionStatus(sub_data["status"])
         sub.cancel_at_period_end = sub_data.get("cancel_at_period_end", False)
         if sub_data.get("current_period_start"):
-            sub.current_period_start = datetime.fromtimestamp(sub_data["current_period_start"], tz=UTC)
+            sub.current_period_start = datetime.fromtimestamp(
+                sub_data["current_period_start"], tz=UTC
+            )
         if sub_data.get("current_period_end"):
-            sub.current_period_end = datetime.fromtimestamp(sub_data["current_period_end"], tz=UTC)
+            sub.current_period_end = datetime.fromtimestamp(
+                sub_data["current_period_end"], tz=UTC
+            )
         self.db.add(sub)
         await self.db.flush()
 
     async def _handle_subscription_deleted(self, sub_data: dict) -> None:
         result = await self.db.execute(
-            select(Subscription).where(Subscription.stripe_subscription_id == sub_data["id"])
+            select(Subscription).where(
+                Subscription.stripe_subscription_id == sub_data["id"]
+            )
         )
         sub = result.scalar_one_or_none()
         if not sub:

@@ -62,7 +62,12 @@ class AuthService:
         # Send verification email async
         await self._send_verification_otp(user)
 
-        await self._notify(user.id, title="Welcome!", body="Your account has been created. Please verify your email.", type="success")
+        await self._notify(
+            user.id,
+            title="Welcome!",
+            body="Your account has been created. Please verify your email.",
+            type="success",
+        )
 
         tokens = await self._create_tokens(user)
         return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
@@ -89,9 +94,19 @@ class AuthService:
         self.db.add(user)
 
         location = f" from {ip_address}" if ip_address else ""
-        await self._notify(user.id, title="New login", body=f"Your account was accessed{location}.", type="info")
+        await self._notify(
+            user.id,
+            title="New login",
+            body=f"Your account was accessed{location}.",
+            type="info",
+        )
 
-        tokens = await self._create_tokens(user, user_agent=user_agent, ip_address=ip_address)
+        tokens = await self._create_tokens(
+            user, user_agent=user_agent, ip_address=ip_address
+        )
+        # The UPDATE above expires server-side columns such as updated_at.
+        await self.db.flush()
+        await self.db.refresh(user)
         return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
 
     async def refresh(self, refresh_token: str) -> TokenResponse:
@@ -123,6 +138,7 @@ class AuthService:
         if stored:
             stored.is_revoked = True
             self.db.add(stored)
+            await self.db.flush()
 
     async def request_otp(self, email: str, purpose: OTPPurpose) -> None:
         user = await self.user_service.get_by_email(email)
@@ -146,7 +162,8 @@ class AuthService:
             user_id=user.id,
             code=code,
             purpose=purpose,
-            expires_at=datetime.now(UTC) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
+            expires_at=datetime.now(UTC)
+            + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
         )
         self.db.add(otp)
         await self.db.flush()
@@ -167,11 +184,13 @@ class AuthService:
             raise InvalidOTPError()
 
         result = await self.db.execute(
-            select(OTPCode).where(
+            select(OTPCode)
+            .where(
                 OTPCode.user_id == user.id,
                 OTPCode.purpose == purpose,
                 OTPCode.is_used.is_(False),
-            ).order_by(OTPCode.created_at.desc())
+            )
+            .order_by(OTPCode.created_at.desc())
         )
         otp = result.scalar_one_or_none()
 
@@ -214,6 +233,7 @@ class AuthService:
             self.db.add(user)
         tokens = await self._create_tokens(user)
         from app.api.users.schemas import UserResponse
+
         return AuthResponse(user=UserResponse.model_validate(user), tokens=tokens)
 
     async def reset_password(self, email: str, code: str, new_password: str) -> None:
@@ -229,7 +249,12 @@ class AuthService:
         for token in tokens.scalars().all():
             token.is_revoked = True
             self.db.add(token)
-        await self._notify(user.id, title="Password changed", body="Your password was successfully reset.", type="warning")
+        await self._notify(
+            user.id,
+            title="Password changed",
+            body="Your password was successfully reset.",
+            type="warning",
+        )
 
     async def setup_totp(self, user: User) -> tuple[str, str]:
         secret = pyotp.random_base32()
@@ -289,18 +314,28 @@ class AuthService:
         key = f"failed_attempts:{user_id}"
         attempts = await self.cache.increment(key, expire=300)
         if attempts >= 5:
-            await self.cache.set(f"lockout:{user_id}", "1", expire=900)  # 15 min lockout
+            await self.cache.set(
+                f"lockout:{user_id}", "1", expire=900
+            )  # 15 min lockout
 
     async def _clear_lockout(self, user_id: uuid.UUID) -> None:
         await self.cache.delete(f"failed_attempts:{user_id}")
         await self.cache.delete(f"lockout:{user_id}")
 
-    async def _notify(self, user_id: uuid.UUID, title: str, body: str | None = None, type: str = "info") -> None:
+    async def _notify(
+        self,
+        user_id: uuid.UUID,
+        title: str,
+        body: str | None = None,
+        type: str = "info",
+    ) -> None:
         from app.api.notifications.model import NotificationType
         from app.api.notifications.service import NotificationService
 
         try:
             notification_type = NotificationType(type)
-            await NotificationService(self.db).create(user_id=user_id, title=title, body=body, type=notification_type)
+            await NotificationService(self.db).create(
+                user_id=user_id, title=title, body=body, type=notification_type
+            )
         except Exception:
             pass  # Notifications are non-critical; never block auth flows

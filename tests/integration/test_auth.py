@@ -67,7 +67,9 @@ async def test_refresh_token(client: AsyncClient, user):
     )
     refresh_token = login.json()["tokens"]["refresh_token"]
 
-    response = await client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    response = await client.post(
+        "/api/auth/refresh", json={"refresh_token": refresh_token}
+    )
     assert response.status_code == 200
     assert "access_token" in response.json()
 
@@ -80,9 +82,13 @@ async def test_logout(client: AsyncClient, user):
     )
     refresh_token = login.json()["tokens"]["refresh_token"]
 
-    response = await client.post("/api/auth/logout", json={"refresh_token": refresh_token})
+    response = await client.post(
+        "/api/auth/logout", json={"refresh_token": refresh_token}
+    )
     assert response.status_code == 200
 
     # Refresh with revoked token should fail
-    response = await client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
+    response = await client.post(
+        "/api/auth/refresh", json={"refresh_token": refresh_token}
+    )
     assert response.status_code == 401

@@ -77,10 +77,12 @@ class UserService:
             .join(BillingCustomer, BillingCustomer.id == Subscription.customer_id)
             .where(
                 BillingCustomer.user_id == user_id,
-                Subscription.status.in_([
-                    SubscriptionStatus.active,
-                    SubscriptionStatus.trialing,
-                ]),
+                Subscription.status.in_(
+                    [
+                        SubscriptionStatus.active,
+                        SubscriptionStatus.trialing,
+                    ]
+                ),
             )
             .order_by(Subscription.created_at.desc())
             .limit(1)

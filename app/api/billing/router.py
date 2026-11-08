@@ -73,7 +73,9 @@ async def stripe_webhook(
     stripe_signature: str | None = Header(default=None, alias="stripe-signature"),
 ) -> dict[str, str]:
     if not settings.STRIPE_WEBHOOK_SECRET:
-        raise HTTPException(status_code=501, detail="Stripe webhook secret not configured")
+        raise HTTPException(
+            status_code=501, detail="Stripe webhook secret not configured"
+        )
 
     body = await request.body()
     try:

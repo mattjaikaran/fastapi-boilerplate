@@ -95,7 +95,9 @@ async def test_list_members(client: AsyncClient, auth_headers: dict):
     )
     org_id = create.json()["id"]
 
-    response = await client.get(f"/api/organizations/{org_id}/members", headers=auth_headers)
+    response = await client.get(
+        f"/api/organizations/{org_id}/members", headers=auth_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
@@ -134,13 +136,21 @@ async def test_non_member_cannot_view_org(client: AsyncClient, auth_headers: dic
 
     svc = UserService(db)
     other_user = await svc.create(
-        UserCreate(email="other@example.com", password="password123", first_name="Other", last_name="User")
+        UserCreate(
+            email="other@example.com",
+            password="password123",
+            first_name="Other",
+            last_name="User",
+        )
     )
     other_user.is_email_verified = True
     db.add(other_user)
     await db.commit()
 
-    login = await client.post("/api/auth/login", json={"email": "other@example.com", "password": "password123"})
+    login = await client.post(
+        "/api/auth/login",
+        json={"email": "other@example.com", "password": "password123"},
+    )
     other_token = login.json()["tokens"]["access_token"]
     other_headers = {"Authorization": f"Bearer {other_token}"}
 

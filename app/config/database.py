@@ -34,7 +34,7 @@ def get_engine_for_tests():
     return create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     async with async_session_factory() as session:
         try:
             yield session

@@ -9,7 +9,9 @@ async def test_search_requires_auth(client: AsyncClient):
 
 
 @pytest.mark.integration
-async def test_search_returns_results_structure(client: AsyncClient, auth_headers: dict):
+async def test_search_returns_results_structure(
+    client: AsyncClient, auth_headers: dict
+):
     response = await client.get("/api/search?q=test", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
@@ -21,7 +23,9 @@ async def test_search_returns_results_structure(client: AsyncClient, auth_header
 
 @pytest.mark.integration
 async def test_search_empty_query(client: AsyncClient, auth_headers: dict):
-    response = await client.get("/api/search?q=zzznoresultsexpected", headers=auth_headers)
+    response = await client.get(
+        "/api/search?q=zzznoresultsexpected", headers=auth_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["hits"] == []
@@ -29,7 +33,9 @@ async def test_search_empty_query(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.integration
-async def test_search_finds_user_by_email(client: AsyncClient, auth_headers: dict, user):
+async def test_search_finds_user_by_email(
+    client: AsyncClient, auth_headers: dict, user
+):
     email_prefix = user.email.split("@")[0]
     response = await client.get(f"/api/search?q={email_prefix}", headers=auth_headers)
     assert response.status_code == 200
@@ -55,7 +61,7 @@ async def test_search_finds_todo(client: AsyncClient, auth_headers: dict):
 
 @pytest.mark.integration
 async def test_search_limit_param(client: AsyncClient, auth_headers: dict):
-    response = await client.get("/api/search?q=e&limit=3", headers=auth_headers)
+    response = await client.get("/api/search?q=te&limit=3", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data["hits"]) <= 3

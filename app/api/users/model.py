@@ -1,5 +1,4 @@
 import enum
-import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
@@ -17,7 +16,9 @@ class UserRole(str, enum.Enum):
 class User(SoftDeleteMixin, BaseModel):
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, index=True, nullable=False
+    )
     hashed_password: Mapped[str | None] = mapped_column(Text, nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -25,13 +26,23 @@ class User(SoftDeleteMixin, BaseModel):
         Enum(UserRole), default=UserRole.user, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_email_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    oauth_provider: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
-    oauth_provider_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    is_totp_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    oauth_provider: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, index=True
+    )
+    oauth_provider_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
 
     # Relationships
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(  # type: ignore[name-defined]  # noqa: F821

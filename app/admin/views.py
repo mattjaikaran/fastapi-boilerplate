@@ -20,12 +20,28 @@ class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-users"
     category = "Auth"
 
-    column_list = [User.id, User.email, User.first_name, User.last_name, User.role, User.is_active, User.is_email_verified, User.created_at]
+    column_list = [
+        User.id,
+        User.email,
+        User.first_name,
+        User.last_name,
+        User.role,
+        User.is_active,
+        User.is_email_verified,
+        User.created_at,
+    ]
     column_searchable_list = [User.email, User.first_name, User.last_name]
     column_sortable_list = [User.email, User.role, User.created_at]
     column_filters = [User.role, User.is_active, User.is_email_verified]
 
-    form_excluded_columns = [User.hashed_password, User.totp_secret, User.refresh_tokens, User.otp_codes, User.todos, User.files]
+    form_excluded_columns = [
+        User.hashed_password,
+        User.totp_secret,
+        User.refresh_tokens,
+        User.otp_codes,
+        User.todos,
+        User.files,
+    ]
     can_delete = True
 
 
@@ -35,7 +51,14 @@ class TodoAdmin(ModelView, model=Todo):
     icon = "fa-solid fa-list-check"
     category = "Content"
 
-    column_list = [Todo.id, Todo.title, Todo.priority, Todo.is_completed, Todo.due_at, Todo.created_at]
+    column_list = [
+        Todo.id,
+        Todo.title,
+        Todo.priority,
+        Todo.is_completed,
+        Todo.due_at,
+        Todo.created_at,
+    ]
     column_searchable_list = [Todo.title]
     column_sortable_list = [Todo.created_at, Todo.priority, Todo.is_completed]
     column_filters = [Todo.priority, Todo.is_completed]
@@ -47,7 +70,14 @@ class FileUploadAdmin(ModelView, model=FileUpload):
     icon = "fa-solid fa-file"
     category = "Content"
 
-    column_list = [FileUpload.id, FileUpload.original_filename, FileUpload.content_type, FileUpload.size_bytes, FileUpload.storage_driver, FileUpload.created_at]
+    column_list = [
+        FileUpload.id,
+        FileUpload.original_filename,
+        FileUpload.content_type,
+        FileUpload.size_bytes,
+        FileUpload.storage_driver,
+        FileUpload.created_at,
+    ]
     column_searchable_list = [FileUpload.original_filename]
     can_create = False
     can_edit = False
@@ -59,7 +89,14 @@ class RefreshTokenAdmin(ModelView, model=RefreshToken):
     icon = "fa-solid fa-key"
     category = "Auth"
 
-    column_list = [RefreshToken.id, RefreshToken.user_id, RefreshToken.is_revoked, RefreshToken.expires_at, RefreshToken.ip_address, RefreshToken.created_at]
+    column_list = [
+        RefreshToken.id,
+        RefreshToken.user_id,
+        RefreshToken.is_revoked,
+        RefreshToken.expires_at,
+        RefreshToken.ip_address,
+        RefreshToken.created_at,
+    ]
     can_create = False
     can_edit = False
 
@@ -70,7 +107,15 @@ class OTPCodeAdmin(ModelView, model=OTPCode):
     icon = "fa-solid fa-lock"
     category = "Auth"
 
-    column_list = [OTPCode.id, OTPCode.user_id, OTPCode.purpose, OTPCode.is_used, OTPCode.expires_at, OTPCode.attempts, OTPCode.created_at]
+    column_list = [
+        OTPCode.id,
+        OTPCode.user_id,
+        OTPCode.purpose,
+        OTPCode.is_used,
+        OTPCode.expires_at,
+        OTPCode.attempts,
+        OTPCode.created_at,
+    ]
     can_create = False
     can_edit = False
 
@@ -81,7 +126,15 @@ class OrganizationAdmin(ModelView, model=Organization):
     icon = "fa-solid fa-building"
     category = "Organizations"
 
-    column_list = [Organization.id, Organization.name, Organization.slug, Organization.plan, Organization.is_active, Organization.owner_id, Organization.created_at]
+    column_list = [
+        Organization.id,
+        Organization.name,
+        Organization.slug,
+        Organization.plan,
+        Organization.is_active,
+        Organization.owner_id,
+        Organization.created_at,
+    ]
     column_searchable_list = [Organization.name, Organization.slug]
     column_sortable_list = [Organization.name, Organization.created_at]
     column_filters = [Organization.plan, Organization.is_active]
@@ -93,7 +146,13 @@ class OrganizationMemberAdmin(ModelView, model=OrganizationMember):
     icon = "fa-solid fa-user-group"
     category = "Organizations"
 
-    column_list = [OrganizationMember.id, OrganizationMember.organization_id, OrganizationMember.user_id, OrganizationMember.role, OrganizationMember.created_at]
+    column_list = [
+        OrganizationMember.id,
+        OrganizationMember.organization_id,
+        OrganizationMember.user_id,
+        OrganizationMember.role,
+        OrganizationMember.created_at,
+    ]
     column_filters = [OrganizationMember.role]
     can_create = False
 
@@ -104,10 +163,21 @@ class WebhookEventAdmin(ModelView, model=WebhookEvent):
     icon = "fa-solid fa-bolt"
     category = "Integrations"
 
-    column_list = [WebhookEvent.id, WebhookEvent.source, WebhookEvent.event_type, WebhookEvent.status, WebhookEvent.signature_valid, WebhookEvent.created_at]
+    column_list = [
+        WebhookEvent.id,
+        WebhookEvent.source,
+        WebhookEvent.event_type,
+        WebhookEvent.status,
+        WebhookEvent.signature_valid,
+        WebhookEvent.created_at,
+    ]
     column_searchable_list = [WebhookEvent.source, WebhookEvent.event_type]
     column_sortable_list = [WebhookEvent.created_at, WebhookEvent.status]
-    column_filters = [WebhookEvent.source, WebhookEvent.status, WebhookEvent.signature_valid]
+    column_filters = [
+        WebhookEvent.source,
+        WebhookEvent.status,
+        WebhookEvent.signature_valid,
+    ]
     can_create = False
     can_edit = False
 
@@ -118,7 +188,12 @@ class BillingCustomerAdmin(ModelView, model=BillingCustomer):
     icon = "fa-solid fa-credit-card"
     category = "Billing"
 
-    column_list = [BillingCustomer.id, BillingCustomer.user_id, BillingCustomer.stripe_customer_id, BillingCustomer.created_at]
+    column_list = [
+        BillingCustomer.id,
+        BillingCustomer.user_id,
+        BillingCustomer.stripe_customer_id,
+        BillingCustomer.created_at,
+    ]
     column_searchable_list = [BillingCustomer.stripe_customer_id]
     can_create = False
     can_edit = False
@@ -130,9 +205,21 @@ class SubscriptionAdmin(ModelView, model=Subscription):
     icon = "fa-solid fa-receipt"
     category = "Billing"
 
-    column_list = [Subscription.id, Subscription.stripe_subscription_id, Subscription.plan, Subscription.status, Subscription.current_period_end, Subscription.cancel_at_period_end, Subscription.created_at]
+    column_list = [
+        Subscription.id,
+        Subscription.stripe_subscription_id,
+        Subscription.plan,
+        Subscription.status,
+        Subscription.current_period_end,
+        Subscription.cancel_at_period_end,
+        Subscription.created_at,
+    ]
     column_sortable_list = [Subscription.created_at, Subscription.status]
-    column_filters = [Subscription.plan, Subscription.status, Subscription.cancel_at_period_end]
+    column_filters = [
+        Subscription.plan,
+        Subscription.status,
+        Subscription.cancel_at_period_end,
+    ]
     can_create = False
 
 
@@ -142,7 +229,14 @@ class NotificationAdmin(ModelView, model=Notification):
     icon = "fa-solid fa-bell"
     category = "System"
 
-    column_list = [Notification.id, Notification.user_id, Notification.type, Notification.title, Notification.read_at, Notification.created_at]
+    column_list = [
+        Notification.id,
+        Notification.user_id,
+        Notification.type,
+        Notification.title,
+        Notification.read_at,
+        Notification.created_at,
+    ]
     column_searchable_list = [Notification.title]
     column_sortable_list = [Notification.created_at]
     column_filters = [Notification.type]
@@ -155,7 +249,15 @@ class AuditLogAdmin(ModelView, model=AuditLog):
     icon = "fa-solid fa-shield"
     category = "System"
 
-    column_list = [AuditLog.id, AuditLog.actor_id, AuditLog.action, AuditLog.resource_type, AuditLog.resource_id, AuditLog.ip_address, AuditLog.created_at]
+    column_list = [
+        AuditLog.id,
+        AuditLog.actor_id,
+        AuditLog.action,
+        AuditLog.resource_type,
+        AuditLog.resource_id,
+        AuditLog.ip_address,
+        AuditLog.created_at,
+    ]
     column_searchable_list = [AuditLog.action, AuditLog.resource_type]
     column_sortable_list = [AuditLog.created_at, AuditLog.action]
     column_filters = [AuditLog.action, AuditLog.resource_type]
@@ -170,7 +272,13 @@ class FeatureFlagAdmin(ModelView, model=FeatureFlag):
     icon = "fa-solid fa-flag"
     category = "System"
 
-    column_list = [FeatureFlag.id, FeatureFlag.key, FeatureFlag.name, FeatureFlag.enabled, FeatureFlag.created_at]
+    column_list = [
+        FeatureFlag.id,
+        FeatureFlag.key,
+        FeatureFlag.name,
+        FeatureFlag.enabled,
+        FeatureFlag.created_at,
+    ]
     column_searchable_list = [FeatureFlag.key, FeatureFlag.name]
     column_sortable_list = [FeatureFlag.key, FeatureFlag.created_at]
     column_filters = [FeatureFlag.enabled]
@@ -182,7 +290,13 @@ class OrgFeatureFlagAdmin(ModelView, model=OrgFeatureFlag):
     icon = "fa-solid fa-toggle-on"
     category = "System"
 
-    column_list = [OrgFeatureFlag.id, OrgFeatureFlag.flag_id, OrgFeatureFlag.org_id, OrgFeatureFlag.enabled, OrgFeatureFlag.created_at]
+    column_list = [
+        OrgFeatureFlag.id,
+        OrgFeatureFlag.flag_id,
+        OrgFeatureFlag.org_id,
+        OrgFeatureFlag.enabled,
+        OrgFeatureFlag.created_at,
+    ]
     column_filters = [OrgFeatureFlag.enabled]
 
 
@@ -192,7 +306,17 @@ class APIKeyAdmin(ModelView, model=APIKey):
     icon = "fa-solid fa-key"
     category = "Integrations"
 
-    column_list = [APIKey.id, APIKey.user_id, APIKey.name, APIKey.key_prefix, APIKey.scopes, APIKey.expires_at, APIKey.last_used_at, APIKey.revoked_at, APIKey.created_at]
+    column_list = [
+        APIKey.id,
+        APIKey.user_id,
+        APIKey.name,
+        APIKey.key_prefix,
+        APIKey.scopes,
+        APIKey.expires_at,
+        APIKey.last_used_at,
+        APIKey.revoked_at,
+        APIKey.created_at,
+    ]
     column_searchable_list = [APIKey.name, APIKey.key_prefix]
     column_sortable_list = [APIKey.created_at, APIKey.last_used_at]
     can_create = False
@@ -204,7 +328,15 @@ class BackgroundJobAdmin(ModelView, model=BackgroundJob):
     icon = "fa-solid fa-gears"
     category = "System"
 
-    column_list = [BackgroundJob.id, BackgroundJob.name, BackgroundJob.task_name, BackgroundJob.status, BackgroundJob.started_at, BackgroundJob.completed_at, BackgroundJob.created_at]
+    column_list = [
+        BackgroundJob.id,
+        BackgroundJob.name,
+        BackgroundJob.task_name,
+        BackgroundJob.status,
+        BackgroundJob.started_at,
+        BackgroundJob.completed_at,
+        BackgroundJob.created_at,
+    ]
     column_searchable_list = [BackgroundJob.name, BackgroundJob.task_name]
     column_sortable_list = [BackgroundJob.created_at, BackgroundJob.status]
     column_filters = [BackgroundJob.status, BackgroundJob.task_name]

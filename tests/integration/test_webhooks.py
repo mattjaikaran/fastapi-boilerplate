@@ -33,7 +33,9 @@ async def test_receive_webhook_empty_body(client: AsyncClient):
 
 
 @pytest.mark.integration
-async def test_list_webhook_events_requires_admin(client: AsyncClient, auth_headers: dict):
+async def test_list_webhook_events_requires_admin(
+    client: AsyncClient, auth_headers: dict
+):
     response = await client.get("/api/webhooks/events", headers=auth_headers)
     assert response.status_code == 403
 
@@ -60,7 +62,9 @@ async def test_get_webhook_event_by_id(client: AsyncClient, admin_headers: dict)
     assert len(items) >= 1
     event_id = items[0]["id"]
 
-    response = await client.get(f"/api/webhooks/events/{event_id}", headers=admin_headers)
+    response = await client.get(
+        f"/api/webhooks/events/{event_id}", headers=admin_headers
+    )
     assert response.status_code == 200
     assert response.json()["id"] == event_id
 
@@ -68,7 +72,10 @@ async def test_get_webhook_event_by_id(client: AsyncClient, admin_headers: dict)
 @pytest.mark.integration
 async def test_idempotency_key_deduplicates(client: AsyncClient, admin_headers: dict):
     payload = {"event": "duplicate.test"}
-    headers = {"x-idempotency-key": "idempotency-abc-123", "content-type": "application/json"}
+    headers = {
+        "x-idempotency-key": "idempotency-abc-123",
+        "content-type": "application/json",
+    }
 
     await client.post("/api/webhooks/idempotent-source", json=payload, headers=headers)
     await client.post("/api/webhooks/idempotent-source", json=payload, headers=headers)
