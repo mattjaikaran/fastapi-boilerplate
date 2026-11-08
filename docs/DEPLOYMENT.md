@@ -175,8 +175,9 @@ graph TD
 # 1. Run migrations before starting the app
 uv run alembic upgrade head
 
-# 2. Create initial superuser (idempotent)
-uv run python scripts/create_superuser.py
+# 2. Create initial superuser from FIRST_SUPERUSER_EMAIL/PASSWORD
+#    (idempotent; also seeds demo data)
+uv run python scripts/seed_data.py
 
 # 3. Verify
 curl https://yourdomain.com/api/health/ready
