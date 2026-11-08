@@ -1,9 +1,20 @@
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, EmailStr, Field
 
 from app.api.users.model import UserRole
+
+
+def _reject_nul(password: str) -> str:
+    # bcrypt raises ValueError on NUL bytes; reject them as a 422 instead.
+    if "\x00" in password:
+        raise ValueError("Password must not contain NUL characters")
+    return password
+
+
+NewPassword = Annotated[str, Field(min_length=8), AfterValidator(_reject_nul)]
 
 
 class UserBase(BaseModel):
@@ -13,7 +24,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=8)
+    password: NewPassword
 
 
 class UserUpdate(BaseModel):

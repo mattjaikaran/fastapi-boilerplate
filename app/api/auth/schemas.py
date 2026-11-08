@@ -1,11 +1,11 @@
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.users.schemas import UserResponse
+from app.api.users.schemas import NewPassword, UserResponse
 
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: NewPassword
     first_name: str | None = None
     last_name: str | None = None
 
@@ -36,7 +36,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str = Field(min_length=8)
+    new_password: NewPassword
 
 
 class VerifyEmailRequest(BaseModel):
@@ -56,7 +56,7 @@ class VerifyOTPRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=8)
+    new_password: NewPassword
 
 
 class TOTPSetupResponse(BaseModel):

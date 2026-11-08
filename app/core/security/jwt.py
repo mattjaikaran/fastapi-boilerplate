@@ -2,10 +2,14 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 
 from app.config.settings import settings
 from app.core.exceptions.auth import InvalidTokenError
+
+# Tolerate small clock differences between replicas for iat, nbf and exp.
+CLOCK_SKEW_LEEWAY_SECONDS = 10
 
 
 def _encode(payload: dict[str, Any]) -> str:
@@ -20,9 +24,10 @@ def decode_token(token: str) -> dict[str, Any]:
             token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
+            leeway=CLOCK_SKEW_LEEWAY_SECONDS,
         )
         return payload
-    except JWTError as e:
+    except PyJWTError as e:
         raise InvalidTokenError(detail=str(e)) from e
 
 

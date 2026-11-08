@@ -1,7 +1,9 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
 
 from app.config.settings import settings
 from app.core.exceptions.handlers import register_exception_handlers
@@ -25,7 +27,7 @@ def create_app() -> FastAPI:
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
         debug=settings.APP_DEBUG,
-        default_response_class=ORJSONResponse,
+        lifespan=lifespan,
         docs_url="/docs" if not settings.is_production else None,
         redoc_url="/redoc" if not settings.is_production else None,
         openapi_url="/openapi.json" if not settings.is_production else None,
@@ -33,7 +35,6 @@ def create_app() -> FastAPI:
 
     _register_middleware(app)
     _register_routers(app)
-    _register_events(app)
     register_exception_handlers(app)
 
     if settings.PROMETHEUS_ENABLED:
@@ -74,20 +75,19 @@ def _register_routers(app: FastAPI) -> None:
     setup_admin(app)
 
 
-def _register_events(app: FastAPI) -> None:
-    @app.on_event("startup")
-    async def on_startup() -> None:
-        _configure_logging()
-        if settings.OTEL_ENABLED:
-            _configure_otel()
-        if settings.SENTRY_DSN:
-            _configure_sentry()
-        await logger.ainfo(
-            "app_started", env=settings.APP_ENV, version=settings.APP_VERSION
-        )
-
-    @app.on_event("shutdown")
-    async def on_shutdown() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    _configure_logging()
+    if settings.OTEL_ENABLED:
+        _configure_otel()
+    if settings.SENTRY_DSN:
+        _configure_sentry()
+    await logger.ainfo(
+        "app_started", env=settings.APP_ENV, version=settings.APP_VERSION
+    )
+    try:
+        yield
+    finally:
         from app.config.database import engine
         from app.services.integrations.ninja_client import close_ninja_client
 

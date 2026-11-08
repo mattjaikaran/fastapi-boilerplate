@@ -92,3 +92,12 @@ async def test_logout(client: AsyncClient, user):
         "/api/auth/refresh", json={"refresh_token": refresh_token}
     )
     assert response.status_code == 401
+
+
+@pytest.mark.integration
+async def test_register_password_with_nul_returns_422(client: AsyncClient):
+    response = await client.post(
+        "/api/auth/register",
+        json={"email": "nul@example.com", "password": "password\x00123"},
+    )
+    assert response.status_code == 422

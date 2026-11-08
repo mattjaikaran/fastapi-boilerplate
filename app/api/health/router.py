@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.config.database import async_session_factory
@@ -12,12 +12,12 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("", include_in_schema=False)
 @router.get("/live")
-async def liveness() -> ORJSONResponse:
-    return ORJSONResponse({"status": "ok", "timestamp": datetime.now(UTC).isoformat()})
+async def liveness() -> JSONResponse:
+    return JSONResponse({"status": "ok", "timestamp": datetime.now(UTC).isoformat()})
 
 
 @router.get("/ready")
-async def readiness() -> ORJSONResponse:
+async def readiness() -> JSONResponse:
     checks: dict[str, str] = {}
     healthy = True
 
@@ -42,7 +42,7 @@ async def readiness() -> ORJSONResponse:
         checks["redis"] = f"error: {e}"
         healthy = False
 
-    return ORJSONResponse(
+    return JSONResponse(
         status_code=200 if healthy else 503,
         content={
             "status": "ok" if healthy else "degraded",
@@ -54,8 +54,8 @@ async def readiness() -> ORJSONResponse:
 
 
 @router.get("/info")
-async def info() -> ORJSONResponse:
-    return ORJSONResponse(
+async def info() -> JSONResponse:
+    return JSONResponse(
         {
             "app": settings.APP_NAME,
             "version": settings.APP_VERSION,
