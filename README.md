@@ -536,5 +536,6 @@ uv run pytest -m "integration and not slow"
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Optional RabbitMQ service, publish/consume helpers, routing keys |
 | [docs/VECTOR.md](docs/VECTOR.md) | Optional pgvector service, embeddings schema example |
 | [docs/GRAPH.md](docs/GRAPH.md) | Optional Neo4j graph database and client |
+| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Django Ninja HTTP client: settings, usage, errors |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |
