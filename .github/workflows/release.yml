@@ -121,6 +121,8 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           body_path: release-notes.md
-          files: dist/*
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
           prerelease: ${{ env.PRERELEASE == 'true' }}
           fail_on_unmatched_files: true
