@@ -85,6 +85,7 @@ vector = [
 graph = [
     "neo4j>=5.27.0",
 ]
+]
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
@@ -99,6 +100,10 @@ dev = [
     "schemathesis>=3.38.0",
 ]
 agents = [
+    "langgraph>=0.6.0",
+    "langgraph-checkpoint-postgres>=2.0.0",
+    "langchain-anthropic>=0.3.0",
+    "psycopg[binary]>=3.2.0",
     "pydantic-ai-slim[anthropic,openai]>=2.66.0",
 ]
 
