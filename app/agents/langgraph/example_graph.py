@@ -4,7 +4,7 @@
 importing this module needs no API key and no database connection.
 """
 
-from typing import Annotated, Literal, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage
@@ -20,8 +20,9 @@ class ExampleState(TypedDict):
     """State carried between the graph's nodes."""
 
     messages: Annotated[list[BaseMessage], add_messages]
-    drafts: int
-    approved: bool
+    # Omitted on a fresh thread; nodes treat them as 0 and False.
+    drafts: NotRequired[int]
+    approved: NotRequired[bool]
 
 
 def _model() -> ChatAnthropic:
@@ -37,19 +38,20 @@ def _model() -> ChatAnthropic:
 async def draft(state: ExampleState) -> dict[str, object]:
     """Ask Claude for a draft (or a revision) of the answer."""
     response = await _model().ainvoke(state["messages"])
-    return {"messages": [response], "drafts": state["drafts"] + 1}
+    return {"messages": [response], "drafts": state.get("drafts", 0) + 1}
 
 
 def review(state: ExampleState) -> dict[str, object]:
     """Approve a draft with content once the review budget is spent."""
     text = state["messages"][-1].text
-    approved = bool(text.strip()) and (len(text) >= 40 or state["drafts"] >= MAX_DRAFTS)
+    drafts = state.get("drafts", 0)
+    approved = bool(text.strip()) and (len(text) >= 40 or drafts >= MAX_DRAFTS)
     return {"approved": approved}
 
 
 def route(state: ExampleState) -> Literal["draft", "end"]:
     """Send the run back to drafting or finish it."""
-    if state["approved"] or state["drafts"] >= MAX_DRAFTS:
+    if state.get("approved", False) or state.get("drafts", 0) >= MAX_DRAFTS:
         return "end"
     return "draft"
 
