@@ -72,7 +72,6 @@ dependencies = [
     "python-slugify>=8.0.4",
     "pendulum>=3.0.0",
     "ulid-py>=1.1.0",
-    "py-webauthn>=0.0.6",
     "webauthn>=2.7.1",
 ]
 
