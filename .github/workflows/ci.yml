@@ -1,41 +1,101 @@
 name: CI
 
+# Diff-only: the `changes` job maps the changed paths to the jobs below.
+# Manual runs select everything. Jobs run in parallel on the repo runners
+# on LXC 107 (ci-runner-fastapi-boilerplate, ci-runner-fastapi-boilerplate-2).
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+# A pull request's newer commit replaces its older run. Push runs get one
+# group per commit and never cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  UV_CACHE_DIR: /tmp/.uv-cache # persistent on CT 107, shared by its runners
+  PYTHON_VERSION: "3.13"
 
 jobs:
-  lint:
-    name: Lint & Format
-    runs-on: ubuntu-latest
+  changes:
+    name: Changes
+    # Fork PRs never run on the persistent self-hosted runners; every other
+    # job needs this one, so they skip too.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 5
+    outputs:
+      python: ${{ steps.filter.outputs.python == 'true' || github.event_name == 'workflow_dispatch' }}
+      docker: ${{ steps.filter.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          python-version: "3.13"
-      - run: uv sync
+          filters: |
+            python:
+              - "app/**"
+              - "tests/**"
+              - "migrations/**"
+              - "alembic.ini"
+              - "pyproject.toml"
+              - "uv.lock"
+              - ".github/workflows/ci.yml"
+            docker:
+              - "Dockerfile"
+              - "docker/**"
+              - "docker-compose*.yml"
+              - "pyproject.toml"
+              - "uv.lock"
+              - ".github/workflows/ci.yml"
+
+  lint:
+    name: Lint & Format
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+      - run: uv sync --locked
       - run: uv run ruff check app tests
       - run: uv run ruff format app tests --check
 
   typecheck:
     name: Type Check
-    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.13"
-      - run: uv sync
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+      - run: uv sync --locked
       - run: uv run mypy app
 
   test:
-    name: Tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.13"]
+    name: Tests (Python 3.13)
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -43,63 +103,55 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_db_test
+        # Random host port: both runners share one Docker host.
+        ports:
+          - 5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-        ports:
-          - 5432:5432
       redis:
         image: redis:7-alpine
+        ports:
+          - 6379
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-        ports:
-          - 6379:6379
-
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
-      - run: uv sync
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+      - run: uv sync --locked
       - name: Run tests
         env:
           APP_ENV: test
           SECRET_KEY: ci-secret-key-32-chars-minimum-here
           JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/app_db_test
-          REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/app_db_test
+          REDIS_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/0
+          CELERY_BROKER_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/1
+          CELERY_RESULT_BACKEND: redis://localhost:${{ job.services.redis.ports['6379'] }}/2
           CELERY_TASK_ALWAYS_EAGER: "true"
           RATE_LIMIT_ENABLED: "false"
           RESEND_API_KEY: ""
-        run: uv run pytest --cov=app --cov-report=xml -x
-      - uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.13'
-        with:
-          files: coverage.xml
+        run: uv run pytest -p no:cacheprovider
 
   docker:
     name: Docker Build
-    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      # The Docker host keeps the layers between runs: no registry cache.
       - name: Build development image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: development
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: docker build --target development -t fastapi-boilerplate:ci-dev .
       - name: Build production image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: production
-          push: false
-          cache-from: type=gha
+        run: docker build --target production -t fastapi-boilerplate:ci-prod .
