@@ -59,10 +59,6 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
     CELERY_TASK_ALWAYS_EAGER: bool = False
 
-    # RabbitMQ (optional — install with `uv sync --extra mq`)
-    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
-    RABBITMQ_EXCHANGE: str = "platform.events"
-
     # Email
     RESEND_API_KEY: str = ""
     EMAIL_FROM: EmailStr = "noreply@example.com"
@@ -110,6 +106,10 @@ class Settings(BaseSettings):
     STRIPE_API_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_DEFAULT_PRICE_ID: str = ""
+
+    # RabbitMQ (optional — install with `uv sync --extra mq`)
+    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
+    RABBITMQ_EXCHANGE: str = "platform.events"
 
     # AI/ML
     ANTHROPIC_API_KEY: str = ""
