@@ -44,11 +44,6 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL: int = 300
 
-    # Neo4j (optional graph database; requires the `graph` extra)
-    NEO4J_URI: str = "bolt://localhost:7687"
-    NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = ""
-
     # JWT
     JWT_SECRET_KEY: str = Field(min_length=32)
     JWT_ALGORITHM: str = "HS256"
@@ -126,6 +121,10 @@ class Settings(BaseSettings):
     AGENT_DEFAULT_MODEL: str = "claude-sonnet-4-6"
     AGENT_MAX_STEPS: int = 10
     AGENT_TIMEOUT_SECONDS: int = 60
+    # Neo4j (optional graph database; requires the `graph` extra)
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USER: str = "neo4j"
+    NEO4J_PASSWORD: str = ""
 
     @computed_field
     @property
