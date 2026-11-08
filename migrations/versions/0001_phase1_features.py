@@ -1,7 +1,7 @@
 """phase1: oauth fields, organizations, webhooks, billing
 
 Revision ID: 0001
-Revises:
+Revises: 0000
 Create Date: 2025-01-01 00:00:00.000000
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0001"
-down_revision: str | None = None
+down_revision: str | None = "0000"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
