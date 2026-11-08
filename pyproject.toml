@@ -76,8 +76,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Extra agent frameworks (Pydantic AI, LangGraph) land here in later issues.
-agents = []
 mq = [
     "aio-pika>=9.4.0",
 ]
@@ -99,6 +97,9 @@ dev = [
     "respx>=0.21.1",
     "Locust>=2.32.3",
     "schemathesis>=3.38.0",
+]
+agents = [
+    "pydantic-ai-slim[anthropic,openai]>=2.66.0",
 ]
 
 [project.scripts]
