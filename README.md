@@ -2,11 +2,20 @@
 
 Production-ready FastAPI + PostgreSQL backend. Async-first, batteries included — auth, billing, background jobs, observability, and a full test suite ready to ship.
 
+[![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
 [![SQLAlchemy 2](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://docs.sqlalchemy.org/)
 [![uv](https://img.shields.io/badge/uv-package--manager-blueviolet)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/badge/linting-ruff-orange)](https://github.com/astral-sh/ruff)
+
+---
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The current version is **0.1.0**. The version in `pyproject.toml` is the single source of truth: the app reads it at run time (`/api/health/info`) unless you set `APP_VERSION`. Run `make version` to print it. While the major version is 0, minor releases can include breaking changes.
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes and [docs/RELEASING.md](docs/RELEASING.md) for the release process.
 
 ---
 
@@ -75,7 +84,7 @@ graph LR
 | Database | **PostgreSQL 17** via asyncpg |
 | Cache / Queue | **Redis 7** (asyncio) |
 | Task Queue | **Celery** + Redis broker |
-| Auth | JWT + bcrypt + TOTP + OAuth2 + WebAuthn |
+| Auth | JWT via **PyJWT** + passwords via **bcrypt** + TOTP + OAuth2 + WebAuthn |
 | Payments | **Stripe** (checkout, portal, webhooks) |
 | Email | **Resend** |
 | File Storage | **Local / S3** (configurable) |
@@ -84,8 +93,9 @@ graph LR
 | Logging | **structlog** (JSON in production) |
 | Admin | **SQLAdmin** at `/admin` |
 | Package Manager | **uv** |
-| Linting | **Ruff** (strict, 11 rule categories) |
-| Type Checking | **mypy** (strict) |
+| Optional services | pgvector, RabbitMQ, Neo4j, SeaweedFS — see [docs/SERVICES.md](docs/SERVICES.md) |
+| Linting | **Ruff** (strict rule set, see `pyproject.toml`) |
+| Type Checking | **mypy** with the pydantic plugin |
 
 ---
 
@@ -101,7 +111,7 @@ graph LR
 | **Payments** | Stripe checkout, billing portal, webhook handler, subscription tracking |
 | **Background Jobs** | Celery workers + beat scheduler, job tracking API |
 | **Notifications** | In-app notifications + async delivery queue |
-| **Webhooks** | Outbound webhook delivery system |
+| **Webhooks** | Inbound webhook receiver with stored events and async processing |
 | **Feature Flags** | Boolean, percentage rollout, A/B variants |
 | **File Uploads** | Multipart upload, local or S3 storage |
 | **Search** | Full-text cross-entity search |
@@ -115,23 +125,28 @@ graph LR
 
 ---
 
-## Quick Start
+## Quick start
+
+Prerequisites: [uv](https://docs.astral.sh/uv/getting-started/installation/), Docker with the Compose plugin, and `make`. Python 3.13 is installed by uv when your system Python is older.
 
 ```bash
 # 1. Install
 git clone <repo> && cd fastapi-boilerplate
-make setup          # uv sync + copy .env.example → .env
+./scripts/setup.sh  # uv sync + .env with generated SECRET_KEY and JWT_SECRET_KEY
 
-# 2. Start infrastructure (Docker)
-make up             # postgres + redis
+# 2. Start infrastructure and the API (Docker)
+make up             # postgres + redis + api on port 8100
 
 # 3. Database
 make migrate        # run Alembic migrations
 make seed           # seed admin + sample data
-
-# 4. Run
-make dev
 ```
+
+`make setup` is a shorter alternative to `./scripts/setup.sh`. It copies `.env.example` to `.env` but does not generate secrets.
+
+To run everything in one command, use `make quickstart` (setup, start, migrate, seed).
+
+Run `./scripts/doctor.sh` to check your toolchain, `.env`, dependencies, and services.
 
 | URL | Description |
 |---|---|
@@ -143,11 +158,11 @@ make dev
 
 Default port is 8100 so the API runs beside Django on 8000.
 
-Or in one command:
+To run the API on your machine instead of in Docker (`make dev`), see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Create an admin account with `make create-superuser EMAIL=you@example.com`.
 
-```bash
-make quickstart     # setup + up + migrate + seed
-```
+### Optional services
+
+pgvector, RabbitMQ, Neo4j, SeaweedFS, Celery workers, and Flower are off by default. Each has a Compose profile and a Make target (for example `make up-vector`, `make up-graph`, `make up-storage`). See [docs/SERVICES.md](docs/SERVICES.md) for ports, env vars, and details.
 
 ---
 
@@ -155,28 +170,32 @@ make quickstart     # setup + up + migrate + seed
 
 ```
 app/
-├── main.py                    # FastAPI factory — middleware, events, OTel, Sentry
+├── main.py                    # FastAPI factory — middleware, lifespan, OTel, Sentry
 ├── config/
 │   ├── settings.py            # Pydantic Settings (env-driven, validated at boot)
 │   └── database.py            # Async SQLAlchemy engine + session factory
 ├── models/
 │   └── base.py                # BaseModel (UUID PK + timestamps), SoftDeleteMixin
 ├── core/
+│   ├── dependencies/          # shared FastAPI dependencies
 │   ├── exceptions/            # AppError hierarchy + exception handlers
 │   ├── middleware/            # RequestID, Logging, SecurityHeaders, RateLimit, Envelope
 │   ├── pagination/            # Page-based pagination schemas
 │   ├── rate_limit.py          # slowapi limiter config
-│   └── security/              # JWT (create/decode), password hash/verify
+│   └── security/              # JWT (PyJWT) create/decode, password hash/verify (bcrypt)
 ├── services/
 │   ├── base.py                # Generic CRUDService[Model, Create, Update]
 │   ├── cache.py               # Redis CacheService
 │   ├── email.py               # Resend EmailService
 │   ├── storage.py             # Local/S3 StorageService
 │   ├── ai/                    # Anthropic + OpenAI clients
+│   ├── graph/                 # Neo4j client (optional graph extra)
+│   ├── integrations/          # Django Ninja HTTP client
 │   └── messaging/             # RabbitMQ publish/consume (optional mq extra)
+├── agents/                    # Pydantic AI and LangGraph agents (optional agents extra)
 ├── api/
-│   ├── router.py              # Top-level APIRouter — aggregates all 18 modules
-│   ├── auth/                  # register, login, refresh, OTP, TOTP, magic link, WebAuthn
+│   ├── router.py              # Top-level APIRouter — aggregates the module routers
+│   ├── auth/                  # register, login, refresh, OTP, TOTP, magic link, OAuth, WebAuthn
 │   ├── users/                 # profile CRUD, API key management
 │   ├── organizations/         # orgs + membership
 │   ├── todos/                 # CRUD, search, stats, bulk ops (reference module)
@@ -187,7 +206,7 @@ app/
 │   ├── api_keys/              # API key CRUD
 │   ├── files/                 # multipart upload, serve, delete
 │   ├── jobs/                  # background job tracking
-│   ├── webhooks/              # outbound webhook delivery
+│   ├── webhooks/              # inbound webhook events
 │   ├── search/                # full-text search
 │   ├── health/                # /live, /ready, /info
 │   ├── ai/                    # AI/ML endpoints
@@ -200,21 +219,27 @@ app/
         ├── notifications.py   # notification delivery tasks
         ├── maintenance.py     # token cleanup, audit purge (scheduled)
         ├── ml.py              # AI/ML processing tasks
-        └── webhooks.py        # webhook delivery queue
+        └── webhooks.py        # inbound webhook event processing
 
-migrations/                    # Alembic versions (timestamp-named)
+migrations/versions/           # Alembic revisions: 0000_baseline … 0005_align_indexes_with_models
 tests/
 ├── conftest.py                # fixtures: db, client, user, admin, auth_headers
-├── factories/                 # factory_boy factories for all models
+├── factories/                 # factory_boy factories
 ├── unit/                      # fast, isolated
 ├── integration/               # real DB (NullPool), one per module
 └── e2e/                       # full user journey tests
 scripts/
 ├── seed_data.py               # dev data: admin + users + todos + orgs
-├── create_superuser.py        # provision initial superuser
+├── create_superuser.py        # create or promote a superuser
 ├── generate_module.py         # scaffold a new API module (5-file pattern)
-├── setup.sh                   # env setup helper
-└── doctor.sh                  # dev environment validator
+├── load_tests.py              # Locust load tests (make test-load)
+├── setup.sh                   # bootstrap: uv sync + .env with generated secrets
+└── doctor.sh                  # environment validator
+docker/postgres/init/          # SQL scripts run on first Postgres start
+docs/                          # guides and the exported openapi.json
+.github/workflows/             # ci.yml, release.yml
+.pre-commit-config.yaml        # pre-commit hooks
+CHANGELOG.md                   # release notes
 ```
 
 ---
@@ -237,17 +262,21 @@ scripts/
 | POST | `/verify-otp` | — | Verify OTP code |
 | POST | `/magic-link/request` | — | Send magic link email |
 | POST | `/magic-link/verify` | — | Authenticate via token |
-| GET | `/google` | — | Google OAuth2 redirect |
-| GET | `/google/callback` | — | Google OAuth2 callback |
-| GET | `/github` | — | GitHub OAuth2 redirect |
-| GET | `/github/callback` | — | GitHub OAuth2 callback |
+| GET | `/oauth/{provider}` | — | OAuth2 redirect (`google` or `github`) |
+| GET | `/oauth/{provider}/callback` | — | OAuth2 callback |
 | POST | `/totp/setup` | JWT | Generate TOTP secret + QR code |
 | POST | `/totp/verify` | JWT | Enable TOTP (verify first code) |
-| POST | `/webauthn/register/begin` | JWT | Begin passkey registration |
-| POST | `/webauthn/register/complete` | JWT | Complete passkey registration |
-| POST | `/webauthn/authenticate/begin` | — | Begin passkey authentication |
-| POST | `/webauthn/authenticate/complete` | — | Complete passkey authentication |
-| GET | `/webauthn/credentials` | JWT | List registered passkeys |
+
+### WebAuthn `/api/webauthn`
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/register/begin` | JWT | Begin passkey registration |
+| POST | `/register/complete` | JWT | Complete passkey registration |
+| POST | `/authenticate/begin` | — | Begin passkey authentication |
+| POST | `/authenticate/complete` | — | Complete passkey authentication |
+| GET | `/credentials` | JWT | List registered passkeys |
+| DELETE | `/credentials/{credential_id}` | JWT | Remove a passkey |
 
 ### Users `/api/users`
 
@@ -299,9 +328,9 @@ Query params: `search`, `priority` (low/medium/high), `completed`, `overdue`, `d
 |---|---|---|---|
 | POST | `/checkout` | JWT | Create Stripe checkout session |
 | POST | `/portal` | JWT | Create Stripe billing portal |
-| POST | `/webhook` | — | Stripe signed webhook handler |
+| POST | `/stripe-webhook` | — | Stripe signed webhook handler |
 | GET | `/subscription` | JWT | Get active subscription |
-| DELETE | `/subscription` | JWT | Cancel subscription |
+| POST | `/cancel` | JWT | Cancel subscription |
 
 ### System
 
@@ -311,8 +340,10 @@ Query params: `search`, `priority` (low/medium/high), `completed`, `overdue`, `d
 | GET | `/api/health/ready` | — | Readiness probe (DB + Redis) |
 | GET | `/api/health/info` | — | App version + environment |
 | GET | `/metrics` | — | Prometheus metrics |
-| GET | `http://localhost:8100/docs` | — | Swagger UI (dev only) |
+| GET | `/docs` | — | Swagger UI (non-production only) |
 | GET | `/admin` | Admin | SQLAdmin panel |
+
+The full, current list of routes is in [docs/openapi.json](docs/openapi.json). Regenerate it with `make openapi-export`.
 
 ---
 
@@ -382,41 +413,42 @@ sequenceDiagram
 ## Development
 
 ```bash
-make dev              # hot reload dev server
+make dev              # hot reload dev server (host, no Docker for the API)
 make lint             # ruff check
 make lint-fix         # ruff check --fix
 make format           # ruff format
 make typecheck        # mypy
-make test             # all tests
-make test-unit        # unit tests only
-make test-integration # integration (needs DB)
-make test-e2e         # end-to-end flows
-make test-cov         # HTML coverage → htmlcov/
+make check            # lint + format check + typecheck
+make pre-commit-install   # install git hooks (see .pre-commit-config.yaml)
 ```
+
+For local setup with and without Docker, test environment variables, and the migration workflow, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ### Database
 
 ```bash
-make migrate                       # apply pending migrations
+make migrate                       # apply pending migrations (Docker)
+make migrate-local                 # apply pending migrations (host)
 make migration msg="add x table"   # generate new migration
 make migrate-down                  # rollback one step
 make seed                          # load dev data
-make db-reset                      # drop + recreate + migrate (dev only)
+make create-superuser EMAIL=you@example.com   # create or promote a superuser
+make db-reset                      # drop + recreate + migrate (DESTRUCTIVE, dev only)
 ```
 
-Seed accounts (all use `password123`):
+Migration `0000_baseline` creates the base tables, so `alembic upgrade head` works on an empty database. If you built a database with `create_all`, run `uv run alembic stamp head` instead of migrating. Run `uv run alembic check` after a model change to confirm that the models and migrations match.
 
-| Email | Role |
-|---|---|
-| `admin@example.com` | superuser |
-| `alice@example.com` | user |
-| `bob@example.com` | user |
-| `charlie@example.com` | user |
+Seed accounts:
 
-### Adding a Module
+| Email | Role | Password |
+|---|---|---|
+| `admin@example.com` | superuser | `FIRST_SUPERUSER_PASSWORD` (`changeme` in `.env.example`) |
+| `alice@example.com`, `bob@example.com`, `charlie@example.com` | user | `password123` |
+
+### Adding a module
 
 ```bash
-uv run python scripts/generate_module.py myfeature
+make generate MODULE=myfeature
 ```
 
 Scaffolds the new package under `app/api/<module>/` with `model.py`, `schemas.py`, `service.py`, `router.py`, `__init__.py`. See [FEATURE_GENERATION.md](FEATURE_GENERATION.md) for the full workflow.
@@ -450,7 +482,7 @@ Scaffolds the new package under `app/api/<module>/` with `model.py`, `schemas.py
 | `WEBAUTHN_RP_ID` | `localhost` | Relying party domain |
 | `RATE_LIMIT_DEFAULT` | `100/minute` | Global rate limit |
 
-Full reference: [`.env.example`](.env.example)
+Full reference: [`.env.example`](.env.example). Variables for optional services are in [docs/SERVICES.md](docs/SERVICES.md). `APP_VERSION` defaults to the version in `pyproject.toml`; set it only to override.
 
 ---
 
@@ -458,42 +490,44 @@ Full reference: [`.env.example`](.env.example)
 
 ```bash
 make up                # postgres + redis + api
-make up-celery         # + Celery worker
-make up-monitoring     # + Celery worker + Flower
+make up-celery         # + Celery worker and beat
+make up-monitoring     # + Celery worker, beat, and Flower
 make down
 make logs
 make status
 ```
 
+Optional services (pgvector, RabbitMQ, Neo4j, SeaweedFS, Celery, Flower) each have a Compose profile and a Make target. See [docs/SERVICES.md](docs/SERVICES.md) for the full list.
+
 Production image:
 
 ```bash
-docker build -t my-api .
+make build-prod                                  # build via docker-compose.prod.yml
+docker build --target production -t my-api .     # or build the image alone
 docker run -p 8100:8100 --env-file .env.prod my-api
 ```
 
-In `production` mode: Swagger/ReDoc disabled, JSON logging, debug off, secret key validation enforced.
+In `production` mode: Swagger/ReDoc disabled, JSON logging, debug off, secret key validation enforced. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 
 ## Testing
 
-Tests use **real database** (NullPool — no mocked ORM). Factories via `factory_boy`.
+Tests use a **real database** (NullPool — no mocked ORM) and factories via `factory_boy`.
+
+> **Note:** the tests run against `TEST_DATABASE_URL` (default: `DATABASE_URL` with `_test` added to the database name, created if missing). The database name must end with `_test`, so the tests never touch your dev database.
 
 ```bash
 make test                # all tests
 make test-unit           # fast, isolated
-make test-integration    # hit real Postgres + Redis
+make test-integration    # real Postgres + Redis
 make test-e2e            # full user journeys
 make test-cov            # HTML report → htmlcov/index.html
 ```
 
-Test markers: `unit`, `integration`, `e2e`, `slow`, `smoke`, `ml`
+Test markers: `unit`, `integration`, `e2e`, `slow`, `smoke`, `ml`.
 
-```bash
-uv run pytest -m unit
-uv run pytest -m "integration and not slow"
-```
+For the required environment variables (`APP_ENV=test`, `RATE_LIMIT_ENABLED=false`, a test `DATABASE_URL`, and others) and a copy-paste setup, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#run-tests).
 
 ---
 
@@ -517,25 +551,29 @@ uv run pytest -m "integration and not slow"
 ## Performance
 
 - **asyncpg** driver — async I/O, no thread-pool blocking
-- **orjson** default response class — ~2× faster JSON serialization
+- **Pydantic** response serialization — FastAPI serializes typed responses directly to JSON bytes
 - **GZip** middleware — ~70% size reduction on JSON responses
 - **structlog** JSON renderer — machine-parseable in production
 - **Redis** for cache, OTP, lockout — avoids extra DB round-trips
-- Connection pool: `POOL_SIZE=20`, `MAX_OVERFLOW=40`
+- Connection pool: `DATABASE_POOL_SIZE=20`, `DATABASE_MAX_OVERFLOW=40`
 
 ---
 
-## Further Reading
+## Further reading
 
 | Doc | Contents |
 |---|---|
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local setup with and without Docker, migrations, tests, pre-commit |
+| [docs/SERVICES.md](docs/SERVICES.md) | Every Compose service: profile, Make target, ports, env vars |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagrams, middleware stack, data model, service layer |
 | [docs/AUTH.md](docs/AUTH.md) | All auth flows with sequence diagrams, RBAC reference |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, health checks, monitoring |
+| [docs/RELEASING.md](docs/RELEASING.md) | Version bump, tag, and release workflow |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes for every version |
 | [docs/AI_AGENTS.md](docs/AI_AGENTS.md) | Agent package layout, settings, adding an agent, `ml` queue |
-| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Optional RabbitMQ service, publish/consume helpers, routing keys |
+| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Optional RabbitMQ service and the Django Ninja HTTP client |
 | [docs/VECTOR.md](docs/VECTOR.md) | Optional pgvector service, embeddings schema example |
 | [docs/GRAPH.md](docs/GRAPH.md) | Optional Neo4j graph database and client |
-| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Django Ninja HTTP client: settings, usage, errors |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |
+| [docs/openapi.json](docs/openapi.json) | Exported OpenAPI spec |

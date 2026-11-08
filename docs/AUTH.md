@@ -34,7 +34,7 @@ sequenceDiagram
     Note over C,R: Login
     C->>A: POST /api/auth/login { email, password }
     A->>DB: load user, check lockout counter (Redis)
-    A->>A: bcrypt.verify(password, hash)
+    A->>A: bcrypt.checkpw(password, hash)
     A->>DB: store refresh_token SHA-256 hash
     A-->>C: 200 { access_token, refresh_token, user }
 
@@ -55,17 +55,38 @@ sequenceDiagram
     A-->>C: 204
 ```
 
-Token payload:
+### Token libraries and claims
+
+The app signs and verifies tokens with [PyJWT](https://pyjwt.readthedocs.io/) (`app/core/security/jwt.py`). It signs with `JWT_SECRET_KEY` and the algorithm in `JWT_ALGORITHM` (default `HS256`). On decode, the app accepts only that algorithm, and PyJWT rejects expired tokens. A bad or expired token raises `InvalidTokenError`.
+
+Access token payload (`type` is `access`):
 
 ```json
 {
   "sub": "<user-uuid>",
   "role": "user",
+  "email": "user@example.com",
+  "type": "access",
   "exp": 1234567890,
-  "iat": 1234567890,
-  "jti": "<uuid>"
+  "iat": 1234567890
 }
 ```
+
+Refresh token payload (`type` is `refresh`). The `jti` claim makes each refresh token unique:
+
+```json
+{
+  "sub": "<user-uuid>",
+  "type": "refresh",
+  "exp": 1234567890,
+  "iat": 1234567890,
+  "jti": "<random-hex>"
+}
+```
+
+### Password hashing
+
+The app hashes passwords with the [bcrypt](https://pypi.org/project/bcrypt/) library directly (`app/core/security/password.py`). bcrypt reads only the first 72 bytes of a password, so the app truncates longer passwords to 72 bytes before it hashes or verifies them. A malformed stored hash fails verification and does not raise an error. Bcrypt hashes that passlib created also verify, because the app keeps the same 72-byte truncation that passlib applied.
 
 ---
 
@@ -139,8 +160,8 @@ sequenceDiagram
     Note over C,DB: Setup
     C->>A: POST /api/auth/totp/setup (JWT required)
     A->>A: generate TOTP secret (pyotp)
-    A->>DB: store secret (encrypted)
-    A-->>C: { secret, qr_code_url, backup_codes }
+    A->>DB: store secret
+    A-->>C: { secret, provisioning_uri }
 
     Note over C: user scans QR in authenticator app
 
@@ -148,15 +169,10 @@ sequenceDiagram
     A->>DB: load secret
     A->>A: pyotp.verify(code, window=1)
     A->>DB: set totp_enabled=true
-    A-->>C: 200 { enabled: true }
-
-    Note over C,DB: Login with TOTP
-    C->>A: POST /api/auth/login { email, password }
-    A-->>C: 200 { requires_totp: true, temp_token }
-    C->>A: POST /api/auth/totp/challenge { temp_token, code }
-    A->>A: verify TOTP code
-    A-->>C: 200 { access_token, refresh_token }
+    A-->>C: 200 { message: "TOTP enabled successfully" }
 ```
+
+The login endpoint does not ask for a TOTP code in this release. `POST /api/auth/login` returns the token pair after the password check, even when the user enabled TOTP.
 
 ---
 
@@ -169,12 +185,12 @@ sequenceDiagram
     participant P as Provider (Google/GitHub)
     participant DB as Postgres
 
-    C->>A: GET /api/auth/google
+    C->>A: GET /api/auth/oauth/google
     A-->>C: 302 → Google consent screen
 
     Note over C,P: User authorizes the app
 
-    P->>A: GET /api/auth/google/callback?code=...&state=...
+    P->>A: GET /api/auth/oauth/google/callback?code=...&state=...
     A->>P: POST /oauth/token (exchange code)
     P-->>A: { access_token }
     A->>P: GET /userinfo
@@ -202,25 +218,25 @@ sequenceDiagram
     participant DB as Postgres
 
     Note over C,DB: Registration
-    C->>A: POST /api/auth/webauthn/register/begin (JWT)
+    C->>A: POST /api/webauthn/register/begin (JWT)
     A->>A: generate challenge (py-webauthn)
     A->>A: store challenge in session
     A-->>C: { challenge, rp, user, pubKeyCredParams }
 
     C->>C: navigator.credentials.create(options)
-    C->>A: POST /api/auth/webauthn/register/complete { credential }
+    C->>A: POST /api/webauthn/register/complete { credential }
     A->>A: verify attestation + challenge
     A->>DB: store credential_id, public_key, sign_count
     A-->>C: 200 { credential_id, device_name }
 
     Note over C,DB: Authentication
-    C->>A: POST /api/auth/webauthn/authenticate/begin { username }
+    C->>A: POST /api/webauthn/authenticate/begin { username }
     A->>DB: load credential IDs for user
     A->>A: generate challenge
     A-->>C: { challenge, allowCredentials }
 
     C->>C: navigator.credentials.get(options)
-    C->>A: POST /api/auth/webauthn/authenticate/complete { assertion }
+    C->>A: POST /api/webauthn/authenticate/complete { assertion }
     A->>DB: load credential, verify signature + sign_count
     A->>DB: update sign_count (replay attack protection)
     A-->>C: 200 { access_token, refresh_token }
@@ -346,7 +362,7 @@ sequenceDiagram
 
     C->>A: POST /api/auth/reset-password { email, code, new_password }
     A->>A: verify OTP (purpose=password_reset)
-    A->>A: bcrypt.hash(new_password)
+    A->>A: bcrypt.hashpw(new_password)
     A->>A: revoke all refresh tokens for user
     A-->>C: 200 OK
 ```

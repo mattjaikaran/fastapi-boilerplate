@@ -130,8 +130,10 @@ curl -X POST http://localhost:8000/api/api-keys/ \
   -d '{"name": "fastapi-boilerplate", "scopes": ["read:todos"], "expires_in_days": 90}'
 ```
 
-Copy the `key` field into `NINJA_API_KEY`. Keys are scoped and can be revoked or
-rotated from the Django API; see `django-ninja-boilerplate/docs/API_KEYS.md`.
+Copy the `key` field into `NINJA_API_KEY`. The Django service owns the key
+lifecycle (scopes, expiry, and revocation). This repository does not include
+documentation for it; use the documentation in the django-ninja-boilerplate
+repository. Store the key in `.env` and never commit it.
 
 ### Use it in a route
 

@@ -26,7 +26,7 @@ Services started by `make up`:
 | `beat` | — | Celery beat (optional profile) |
 | `flower` | 5555 | Celery monitor (optional profile) |
 
-Default port is 8100 so the API runs beside Django on 8000.
+Default port is 8100 so the API runs beside Django on 8000. The `pgvector`, `worker`, `beat`, and `flower` rows start only with their Compose profile. For every service, profile, Make target, port, and env var, see [SERVICES.md](SERVICES.md).
 
 ### Production
 
@@ -176,13 +176,20 @@ graph TD
 # 1. Run migrations before starting the app
 uv run alembic upgrade head
 
-# 2. Create initial superuser from FIRST_SUPERUSER_EMAIL/PASSWORD
-#    (idempotent; also seeds demo data)
-uv run python scripts/seed_data.py
+# 2. Create the initial superuser (idempotent). The script reads the password
+#    from --password, then SUPERUSER_PASSWORD, then FIRST_SUPERUSER_PASSWORD
+#    (app settings, so .env applies). With APP_ENV=production the script
+#    refuses the default password `changeme`. Without a terminal, the script
+#    exits with an error when a value is missing.
+SUPERUSER_PASSWORD='<strong-password>' \
+  uv run python scripts/create_superuser.py --email admin@yourdomain.com
+#    Do not run scripts/seed_data.py in production: it creates demo
+#    accounts that use a known password.
 
 # 3. Verify
 curl https://yourdomain.com/api/health/ready
-# → { "data": { "db": "ok", "redis": "ok" } }
+# → { "status": "ok", "checks": { "database": "ok", "redis": "ok" }, ... }
+#   A failed check returns HTTP 503 and "status": "degraded".
 ```
 
 ---
@@ -205,7 +212,9 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-Migration files are named `YYYYMMDD_HHMM_<slug>.py`. Always review auto-generated migrations for:
+Migration `0000_baseline` creates the base tables, so `alembic upgrade head` works on an empty database. If a database was built with `Base.metadata.create_all`, run `uv run alembic stamp head` once instead of upgrading, and only when the schema already matches the models. Run `uv run alembic check` in CI or before a release to confirm that the models and migrations match.
+
+The existing revisions are numbered (`0000_baseline` to `0005_align_indexes_with_models`). New revisions use the `alembic.ini` template `YYYYMMDD_HHMM_<rev>_<slug>.py`. Always review auto-generated migrations for:
 - Missing indexes on FK columns
 - NOT NULL columns on large tables (use multi-step: nullable → backfill → not null)
 - `server_default` vs `default` semantics
