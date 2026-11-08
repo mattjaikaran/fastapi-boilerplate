@@ -323,7 +323,7 @@ Query params: `search`, `priority` (low/medium/high), `completed`, `overdue`, `d
 | GET | `/api/health/ready` | — | Readiness probe (DB + Redis) |
 | GET | `/api/health/info` | — | App version + environment |
 | GET | `/metrics` | — | Prometheus metrics |
-| GET | `/docs` | — | Swagger UI (dev only) |
+| GET | `http://localhost:8100/docs` | — | Swagger UI (dev only) |
 | GET | `/admin` | Admin | SQLAdmin panel |
 
 ---
@@ -431,7 +431,7 @@ Seed accounts (all use `password123`):
 uv run python scripts/generate_module.py myfeature
 ```
 
-Scaffolds `app/api/myfeature/` with `model.py`, `schemas.py`, `service.py`, `router.py`, `__init__.py`. See [FEATURE_GENERATION.md](FEATURE_GENERATION.md) for the full workflow.
+Scaffolds the new package under `app/api/<module>/` with `model.py`, `schemas.py`, `service.py`, `router.py`, `__init__.py`. See [FEATURE_GENERATION.md](FEATURE_GENERATION.md) for the full workflow.
 
 ---
 
@@ -474,7 +474,7 @@ make up-celery         # + Celery worker
 make up-monitoring     # + Celery worker + Flower
 make down
 make logs
-make ps
+make status
 ```
 
 Production image:
