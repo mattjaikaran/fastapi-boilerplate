@@ -60,9 +60,7 @@ class TestTodosJourney:
             )
 
         # Filter by priority
-        resp = await client.get(
-            "/api/todos?priority=high", headers=auth_headers
-        )
+        resp = await client.get("/api/todos?priority=high", headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert all(t["priority"] == "high" for t in data["items"])

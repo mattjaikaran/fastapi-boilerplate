@@ -13,7 +13,6 @@ from app.api.organizations.schemas import (
 )
 from app.api.organizations.service import OrganizationService
 from app.config.database import DBSession
-from app.core.exceptions import ForbiddenError
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -39,7 +38,9 @@ async def list_organizations(
     page: int = 1,
     page_size: int = 20,
 ) -> OrganizationListResponse:
-    orgs, total = await _svc(db).list_for_user(user_id=current_user.id, page=page, page_size=page_size)
+    orgs, total = await _svc(db).list_for_user(
+        user_id=current_user.id, page=page, page_size=page_size
+    )
     return OrganizationListResponse(
         items=[OrganizationResponse.model_validate(o) for o in orgs],
         total=total,

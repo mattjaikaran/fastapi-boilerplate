@@ -1,4 +1,5 @@
 """OpenAI client — drop in OPENAI_API_KEY and it works."""
+
 from typing import Any
 
 import structlog
@@ -64,7 +65,9 @@ class OpenAIService:
         return response.choices[0].message.content or ""
 
     @classmethod
-    def embed(cls, texts: list[str], model: str = "text-embedding-3-small") -> list[list[float]]:
+    def embed(
+        cls, texts: list[str], model: str = "text-embedding-3-small"
+    ) -> list[list[float]]:
         client = cls.get_client()
         response = client.embeddings.create(input=texts, model=model)
         return [e.embedding for e in response.data]

@@ -57,7 +57,9 @@ class WebhookService:
             payload=payload,
             headers=headers,
             signature_valid=signature_valid,
-            status=WebhookEventStatus.pending if signature_valid else WebhookEventStatus.skipped,
+            status=WebhookEventStatus.pending
+            if signature_valid
+            else WebhookEventStatus.skipped,
             idempotency_key=idempotency_key,
         )
         self.db.add(event)
@@ -90,7 +92,9 @@ class WebhookService:
         if status:
             query = query.where(WebhookEvent.status == status)
 
-        total = (await self.db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
+        total = (
+            await self.db.execute(select(func.count()).select_from(query.subquery()))
+        ).scalar_one()
         events = list(
             (
                 await self.db.execute(
@@ -105,7 +109,6 @@ class WebhookService:
         return events, total
 
     async def mark_processed(self, event: WebhookEvent) -> None:
-        from datetime import UTC, datetime
 
         event.status = WebhookEventStatus.processed
         self.db.add(event)

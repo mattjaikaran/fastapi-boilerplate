@@ -27,7 +27,9 @@ class AdminAuth(AuthenticationBackend):
         if not user or not user.is_active or not user.is_admin:
             return False
 
-        if not user.hashed_password or not verify_password(str(password), user.hashed_password):
+        if not user.hashed_password or not verify_password(
+            str(password), user.hashed_password
+        ):
             return False
 
         request.session["admin_user_id"] = str(user.id)

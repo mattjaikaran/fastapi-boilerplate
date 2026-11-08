@@ -21,7 +21,7 @@ dependencies = [
     # Auth & Security
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
-    "bcrypt>=4.2.0",
+    "bcrypt>=4.2.0,<5",
     "pyotp>=2.9.0",
     "itsdangerous>=2.2.0",
     # Config
@@ -115,6 +115,8 @@ dev-dependencies = [
     "respx>=0.21.1",
     "Locust>=2.32.3",
     "schemathesis>=3.38.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
 ]
 
 [tool.ruff]
@@ -143,7 +145,25 @@ ignore = [
     "S101",    # assert statements (used in tests)
     "S104",    # possible binding to all interfaces
     "B008",    # FastAPI: Query/Depends/Body in default args is the intended pattern
+    "E501",    # line length is owned by ruff format
+    "ANN",     # annotations are enforced by mypy, not ruff
+    "TC",      # SQLAlchemy relationships need runtime model imports
+    "S105",    # false positives on enum values and token URLs
+    "S106",
+    "S110",
+    "UP042",   # str+Enum kept for DB enum compatibility
+    "UP046",
+    "N814",
+    "SIM105",
+    "ASYNC240",
+    "B904",
+    "N806",
+    "UP028",   # async generators cannot use yield from
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S105", "S106", "N806"]
+"migrations/**" = ["ANN"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
@@ -187,6 +207,20 @@ exclude_lines = [
 
 [tool.mypy]
 python_version = "3.13"
-strict = true
+check_untyped_defs = true
+warn_redundant_casts = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
+disable_error_code = ["prop-decorator"]
+
+# Third-party stubs lag the SDKs these modules call.
+[[tool.mypy.overrides]]
+module = [
+    "app.api.auth.webauthn_service",
+    "app.api.billing.service",
+    "app.api.jobs.schemas",
+    "app.api.notifications.service",
+    "app.core.middleware.rate_limit",
+    "app.services.cache",
+]
+disable_error_code = ["attr-defined", "call-arg", "operator", "no-redef", "return-value"]

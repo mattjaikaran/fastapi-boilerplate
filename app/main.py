@@ -18,6 +18,7 @@ logger = structlog.get_logger()
 
 def create_app() -> FastAPI:
     from app.models import register_all_models
+
     register_all_models()
 
     app = FastAPI(
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
 
     if settings.PROMETHEUS_ENABLED:
         from prometheus_fastapi_instrumentator import Instrumentator
+
         Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
     return app
@@ -61,12 +63,13 @@ def _register_middleware(app: FastAPI) -> None:
 
 
 def _register_routers(app: FastAPI) -> None:
-    from app.api.router import api_router
     from app.admin.setup import setup_admin
+    from app.api.router import api_router
 
     app.include_router(api_router)
     # Add session middleware required by sqladmin
     from starlette.middleware.sessions import SessionMiddleware
+
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
     setup_admin(app)
 
@@ -79,7 +82,9 @@ def _register_events(app: FastAPI) -> None:
             _configure_otel()
         if settings.SENTRY_DSN:
             _configure_sentry()
-        await logger.ainfo("app_started", env=settings.APP_ENV, version=settings.APP_VERSION)
+        await logger.ainfo(
+            "app_started", env=settings.APP_ENV, version=settings.APP_VERSION
+        )
 
     @app.on_event("shutdown")
     async def on_shutdown() -> None:
@@ -97,7 +102,9 @@ def _configure_logging() -> None:
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.ConsoleRenderer() if settings.is_development else structlog.processors.JSONRenderer(),
+            structlog.dev.ConsoleRenderer()
+            if settings.is_development
+            else structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
             logging.getLevelName(settings.APP_LOG_LEVEL.upper())
@@ -116,7 +123,11 @@ def _configure_otel() -> None:
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
     provider = TracerProvider()
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT)))
+    provider.add_span_processor(
+        BatchSpanProcessor(
+            OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT)
+        )
+    )
     trace.set_tracer_provider(provider)
     FastAPIInstrumentor().instrument()
     SQLAlchemyInstrumentor().instrument()

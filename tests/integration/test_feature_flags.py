@@ -78,14 +78,18 @@ async def test_update_flag(client: AsyncClient, admin_headers: dict):
 
 
 @pytest.mark.integration
-async def test_evaluate_flag(client: AsyncClient, admin_headers: dict, auth_headers: dict):
+async def test_evaluate_flag(
+    client: AsyncClient, admin_headers: dict, auth_headers: dict
+):
     await client.post(
         "/api/feature-flags",
         json={"key": "eval-flag", "name": "Eval Flag", "enabled": True},
         headers=admin_headers,
     )
 
-    response = await client.get("/api/feature-flags/eval/eval-flag", headers=auth_headers)
+    response = await client.get(
+        "/api/feature-flags/eval/eval-flag", headers=auth_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["key"] == "eval-flag"
@@ -102,5 +106,7 @@ async def test_delete_flag(client: AsyncClient, admin_headers: dict):
     )
     flag_id = create.json()["id"]
 
-    response = await client.delete(f"/api/feature-flags/{flag_id}", headers=admin_headers)
+    response = await client.delete(
+        f"/api/feature-flags/{flag_id}", headers=admin_headers
+    )
     assert response.status_code == 204

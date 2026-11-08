@@ -14,8 +14,11 @@ class OrganizationCreate(BaseModel):
     @classmethod
     def validate_slug(cls, v: str) -> str:
         import re
+
         if not re.match(r"^[a-z0-9-]+$", v):
-            raise ValueError("Slug must contain only lowercase letters, numbers, and hyphens")
+            raise ValueError(
+                "Slug must contain only lowercase letters, numbers, and hyphens"
+            )
         return v
 
 

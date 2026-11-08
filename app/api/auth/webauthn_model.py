@@ -34,7 +34,9 @@ class WebAuthnCredential(BaseModel):
         DateTime(timezone=True), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    backup_eligible: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    backup_eligible: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     backup_state: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     transports: Mapped[str | None] = mapped_column(Text, nullable=True)
 

@@ -74,6 +74,7 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/app_db_test
           REDIS_URL: redis://localhost:6379/0
           CELERY_TASK_ALWAYS_EAGER: "true"
+          RATE_LIMIT_ENABLED: "false"
           RESEND_API_KEY: ""
         run: uv run pytest --cov=app --cov-report=xml -x
       - uses: codecov/codecov-action@v4

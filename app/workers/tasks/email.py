@@ -5,7 +5,9 @@ from app.workers.celery_app import celery_app
 logger = structlog.get_logger()
 
 
-@celery_app.task(name="email.send_otp", bind=True, max_retries=3, default_retry_delay=30)
+@celery_app.task(
+    name="email.send_otp", bind=True, max_retries=3, default_retry_delay=30
+)
 def send_otp_email(
     self,
     to_email: str,
@@ -26,7 +28,9 @@ def send_otp_email(
         raise self.retry(exc=exc)
 
 
-@celery_app.task(name="email.send_welcome", bind=True, max_retries=3, default_retry_delay=30)
+@celery_app.task(
+    name="email.send_welcome", bind=True, max_retries=3, default_retry_delay=30
+)
 def send_welcome_email(self, to_email: str, name: str) -> dict:
     try:
         from app.services.email import EmailService

@@ -1,6 +1,11 @@
+from typing import TYPE_CHECKING
+
 import structlog
 
 from app.workers.celery_app import celery_app
+
+if TYPE_CHECKING:
+    from app.api.webhooks.model import WebhookEvent
 
 logger = structlog.get_logger()
 
@@ -14,28 +19,26 @@ def process_webhook_event(self, event_id: str) -> None:
 
 
 async def _process(task, event_id) -> None:
-    import uuid
-
-    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.webhooks.model import WebhookEvent
     from app.api.webhooks.service import WebhookService
     from app.config.database import async_session_factory
 
-    async with async_session_factory() as db:
-        async with db.begin():
-            event = await db.get(WebhookEvent, event_id)
-            if not event:
-                return
+    async with async_session_factory() as db, db.begin():
+        event = await db.get(WebhookEvent, event_id)
+        if not event:
+            return
 
-            svc = WebhookService(db)
-            try:
-                await _handle_event(event)
-                await svc.mark_processed(event)
-            except Exception as exc:
-                logger.exception("webhook_processing_failed", event_id=str(event_id), error=str(exc))
-                await svc.mark_failed(event, error=str(exc))
-                raise task.retry(exc=exc)
+        svc = WebhookService(db)
+        try:
+            await _handle_event(event)
+            await svc.mark_processed(event)
+        except Exception as exc:
+            logger.exception(
+                "webhook_processing_failed", event_id=str(event_id), error=str(exc)
+            )
+            await svc.mark_failed(event, error=str(exc))
+            raise task.retry(exc=exc)
 
 
 async def _handle_event(event: "WebhookEvent") -> None:

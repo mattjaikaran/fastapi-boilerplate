@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import factory
 from factory import Faker
 
-from app.api.organizations.model import OrgRole, Organization, OrganizationMember
+from app.api.organizations.model import Organization, OrganizationMember, OrgRole
 
 
 class OrganizationFactory(factory.Factory):
@@ -14,7 +14,9 @@ class OrganizationFactory(factory.Factory):
     id = factory.LazyFunction(uuid.uuid4)
     owner_id = factory.LazyFunction(uuid.uuid4)
     name = Faker("company")
-    slug = factory.LazyAttribute(lambda o: o.name.lower().replace(" ", "-").replace(",", "")[:50])
+    slug = factory.LazyAttribute(
+        lambda o: o.name.lower().replace(" ", "-").replace(",", "")[:50]
+    )
     created_at = factory.LazyFunction(lambda: datetime.now(UTC))
     updated_at = factory.LazyFunction(lambda: datetime.now(UTC))
 

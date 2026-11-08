@@ -1,8 +1,12 @@
 import pytest
 
-from app.core.security.jwt import create_access_token, create_refresh_token, decode_token
-from app.core.security.password import get_password_hash, verify_password
 from app.core.exceptions.auth import InvalidTokenError
+from app.core.security.jwt import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
+from app.core.security.password import get_password_hash, verify_password
 
 
 @pytest.mark.unit

@@ -1,5 +1,5 @@
-import structlog
 import resend
+import structlog
 
 from app.config.settings import settings
 
@@ -14,7 +14,9 @@ class EmailService:
 
     def send(self, to: str, subject: str, html: str) -> bool:
         if not settings.RESEND_API_KEY:
-            logger.warning("email_skipped", reason="RESEND_API_KEY not configured", to=to)
+            logger.warning(
+                "email_skipped", reason="RESEND_API_KEY not configured", to=to
+            )
             return False
         try:
             resend.Emails.send(

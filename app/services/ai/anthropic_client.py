@@ -1,5 +1,7 @@
 """Anthropic Claude client — drop in ANTHROPIC_API_KEY and it works."""
-from typing import Any, AsyncIterator, TypeVar
+
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
 
 import structlog
 from pydantic import BaseModel

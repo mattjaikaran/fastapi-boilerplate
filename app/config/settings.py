@@ -145,9 +145,7 @@ class Settings(BaseSettings):
                     "WEBAUTHN_RP_ID must be set to your production domain (not localhost)"
                 )
             if self.WEBAUTHN_ORIGIN.startswith("http://"):
-                raise ValueError(
-                    "WEBAUTHN_ORIGIN must use https:// in production"
-                )
+                raise ValueError("WEBAUTHN_ORIGIN must use https:// in production")
         return self
 
 

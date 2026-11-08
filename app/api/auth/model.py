@@ -20,10 +20,17 @@ class RefreshToken(BaseModel):
     __tablename__ = "refresh_tokens"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
-    token_hash: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    token_hash: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     is_revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
@@ -33,7 +40,6 @@ class RefreshToken(BaseModel):
     @property
     def is_expired(self) -> bool:
         from datetime import UTC
-
         from datetime import datetime as dt
 
         return dt.now(UTC) > self.expires_at
@@ -43,11 +49,16 @@ class OTPCode(BaseModel):
     __tablename__ = "otp_codes"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     code: Mapped[str] = mapped_column(String(10), nullable=False)
     purpose: Mapped[OTPPurpose] = mapped_column(Enum(OTPPurpose), nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     attempts: Mapped[int] = mapped_column(default=0, nullable=False)
 
@@ -56,7 +67,6 @@ class OTPCode(BaseModel):
     @property
     def is_expired(self) -> bool:
         from datetime import UTC
-
         from datetime import datetime as dt
 
         return dt.now(UTC) > self.expires_at

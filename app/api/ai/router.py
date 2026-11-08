@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.api.ai.schemas import ChatRequest, ChatResponse, StructuredRequest, StructuredResponse
+from app.api.ai.schemas import (
+    ChatRequest,
+    ChatResponse,
+    StructuredRequest,
+    StructuredResponse,
+)
 from app.api.auth.dependencies import CurrentUser
 from app.services.ai.anthropic_client import AnthropicService
 

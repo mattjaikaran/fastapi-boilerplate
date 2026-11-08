@@ -21,7 +21,11 @@ async def test_checkout_without_stripe_config(client: AsyncClient, auth_headers:
     """Checkout returns 501 when STRIPE_API_KEY is not set."""
     response = await client.post(
         "/api/billing/checkout",
-        json={"price_id": "price_fake123", "success_url": "http://localhost/success", "cancel_url": "http://localhost/cancel"},
+        json={
+            "price_id": "price_fake123",
+            "success_url": "http://localhost/success",
+            "cancel_url": "http://localhost/cancel",
+        },
         headers=auth_headers,
     )
     assert response.status_code == 501
@@ -51,6 +55,9 @@ async def test_stripe_webhook_without_secret(client: AsyncClient):
     response = await client.post(
         "/api/billing/stripe-webhook",
         content=b'{"type":"payment_intent.succeeded"}',
-        headers={"content-type": "application/json", "stripe-signature": "t=fake,v1=fake"},
+        headers={
+            "content-type": "application/json",
+            "stripe-signature": "t=fake,v1=fake",
+        },
     )
     assert response.status_code == 501

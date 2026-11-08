@@ -26,9 +26,8 @@ async def create_api_key(
     db: DBSession,
 ) -> APIKeyCreatedResponse:
     api_key, raw_key = await _svc(db).create(current_user.id, body)
-    response = APIKeyCreatedResponse.model_validate(api_key)
-    response.raw_key = raw_key
-    return response
+    base = APIKeyResponse.model_validate(api_key)
+    return APIKeyCreatedResponse(**base.model_dump(), raw_key=raw_key)
 
 
 @router.get("", response_model=APIKeyListResponse)
