@@ -20,6 +20,7 @@ Services started by `make up`:
 |---|---|---|
 | `api` | 8100 | FastAPI (uvicorn, hot reload in dev) |
 | `db` | 5432 | PostgreSQL 17 |
+| `pgvector` | 5433 | PostgreSQL 17 + pgvector (optional profile, see [VECTOR.md](VECTOR.md)) |
 | `redis` | 6379 | Redis 7 |
 | `worker` | — | Celery worker (optional profile) |
 | `beat` | — | Celery beat (optional profile) |

@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int = 40
     DATABASE_ECHO: bool = False
 
+    # Vector database (optional pgvector)
+    VECTOR_DATABASE_URL: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5433/app_db"
+    )
+    EMBEDDING_DIMENSIONS: int = 1536
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_CACHE_TTL: int = 300

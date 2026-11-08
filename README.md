@@ -534,5 +534,6 @@ uv run pytest -m "integration and not slow"
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment, health checks, monitoring |
 | [docs/AI_AGENTS.md](docs/AI_AGENTS.md) | Agent package layout, settings, adding an agent, `ml` queue |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | Optional RabbitMQ service, publish/consume helpers, routing keys |
+| [docs/VECTOR.md](docs/VECTOR.md) | Optional pgvector service, embeddings schema example |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |
