@@ -5,7 +5,7 @@ Run headless (CI / quick smoke):
     make test-load
 
 Run with UI:
-    uv run locust -f scripts/load_tests.py --host=http://localhost:8000
+    uv run locust -f scripts/load_tests.py --host=http://localhost:8100
 
 User classes:
     AuthUser      — register → login → profile reads

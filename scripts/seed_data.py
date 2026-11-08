@@ -167,8 +167,8 @@ async def seed() -> None:  # noqa: C901
     print(f"  Admin:   {settings.FIRST_SUPERUSER_EMAIL} / {settings.FIRST_SUPERUSER_PASSWORD}")
     for email, _, _ in seed_users:
         print(f"  User:    {email} / password123")
-    print("\nDocs: http://localhost:8000/docs")
-    print("Admin: http://localhost:8000/admin")
+    print("\nDocs: http://localhost:8100/docs")
+    print("Admin: http://localhost:8100/admin")
 
 
 if __name__ == "__main__":

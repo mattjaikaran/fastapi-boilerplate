@@ -41,8 +41,8 @@ RUN uv sync --frozen
 
 COPY . .
 
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+EXPOSE 8100
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100", "--reload"]
 
 # =============================================================================
 # Production
@@ -58,8 +58,8 @@ COPY . .
 RUN addgroup --system app && adduser --system --group app
 USER app
 
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+EXPOSE 8100
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100", "--workers", "4"]
 
 # =============================================================================
 # CI / Test runner

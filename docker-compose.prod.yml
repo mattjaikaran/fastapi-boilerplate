@@ -47,14 +47,14 @@ services:
     volumes:
       - uploads:/app/uploads
     ports:
-      - "8000:8000"
+      - "8100:8100"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/health/live"]
       interval: 30s
       timeout: 10s
       retries: 3
