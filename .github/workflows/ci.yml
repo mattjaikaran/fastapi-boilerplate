@@ -35,8 +35,8 @@ jobs:
       python: ${{ steps.filter.outputs.python == 'true' || github.event_name == 'workflow_dispatch' }}
       docker: ${{ steps.filter.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -63,8 +63,8 @@ jobs:
     runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: false
@@ -80,8 +80,8 @@ jobs:
     runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: false
@@ -120,8 +120,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: false
@@ -133,6 +133,7 @@ jobs:
           SECRET_KEY: ci-secret-key-32-chars-minimum-here
           JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/app_db_test
+          TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/app_db_test
           REDIS_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/0
           CELERY_BROKER_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/1
           CELERY_RESULT_BACKEND: redis://localhost:${{ job.services.redis.ports['6379'] }}/2
@@ -148,7 +149,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The Docker host keeps the layers between runs: no registry cache.
       - name: Build development image
         run: docker build --target development -t fastapi-boilerplate:ci-dev .

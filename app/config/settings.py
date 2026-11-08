@@ -1,8 +1,31 @@
+import tomllib
 from functools import lru_cache
+from importlib import metadata
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AnyHttpUrl, EmailStr, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DIST_NAME = "fastapi-postgres-boilerplate"
+_PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
+
+
+def _project_version() -> str:
+    """Return the version from pyproject.toml, the single source of truth.
+
+    Use the installed package metadata first. Docker images sync with
+    ``--no-install-project``, so fall back to reading pyproject.toml.
+    """
+    try:
+        return metadata.version(_DIST_NAME)
+    except metadata.PackageNotFoundError:
+        pass
+    try:
+        with _PYPROJECT.open("rb") as f:
+            return str(tomllib.load(f)["project"]["version"])
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return "0.0.0"
 
 
 class Settings(BaseSettings):
@@ -21,7 +44,7 @@ class Settings(BaseSettings):
     APP_PORT: int = 8100
     APP_WORKERS: int = 1
     APP_LOG_LEVEL: str = "info"
-    APP_VERSION: str = "0.1.0"
+    APP_VERSION: str = Field(default_factory=_project_version)
 
     # Security
     SECRET_KEY: str = Field(min_length=32)

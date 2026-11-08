@@ -1,0 +1,126 @@
+name: Release
+
+# Push a tag such as v0.1.0 to publish a GitHub release. Use `make release`.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+env:
+  UV_CACHE_DIR: /tmp/.uv-cache # persistent on CT 107, shared by its runners
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_db_test
+        ports:
+          # Random host port: both runners share one Docker host.
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tagged commit is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tagged commit $GITHUB_SHA is not an ancestor of origin/main"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: false
+          cache-local-path: ${{ env.UV_CACHE_DIR }}
+
+      - name: Verify tag matches project version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(uv version --short)"
+          if [ "${TAG#v}" != "$version" ]; then
+            echo "::error::Tag $TAG does not match pyproject.toml version $version"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - run: uv sync --locked
+      - run: uv run ruff check app tests
+      - run: uv run ruff format app tests --check
+      - run: uv run mypy app
+
+      - name: Run tests
+        env:
+          APP_ENV: test
+          SECRET_KEY: ci-secret-key-32-chars-minimum-here
+          JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/app_db_test
+          TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:${{ job.services.postgres.ports['5432'] }}/app_db_test
+          REDIS_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/0
+          CELERY_BROKER_URL: redis://localhost:${{ job.services.redis.ports['6379'] }}/1
+          CELERY_RESULT_BACKEND: redis://localhost:${{ job.services.redis.ports['6379'] }}/2
+          CELERY_TASK_ALWAYS_EAGER: "true"
+          RATE_LIMIT_ENABLED: "false"
+          RESEND_API_KEY: ""
+        run: uv run pytest -p no:cacheprovider
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Extract release notes
+        run: |
+          awk -v v="$VERSION" '
+            /^## \[/ { if (found) exit; if (index($0, "## [" v "]") == 1) { found = 1; next } }
+            found && /^\[[^]]+\]: / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no section for $VERSION"
+            exit 1
+          fi
+          cat release-notes.md
+
+      - name: Detect pre-release
+        run: |
+          # A hyphen or letter in the version marks a pre-release (0.2.0rc1).
+          if printf '%s' "$VERSION" | grep -Eq '[-A-Za-z]'; then
+            echo "PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: dist/*
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          fail_on_unmatched_files: true
