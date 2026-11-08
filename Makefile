@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help
+.PHONY: help version bump-patch bump-minor bump-major release
 
 # =============================================================================
 # CONFIG
@@ -71,6 +71,18 @@ up-celery: ## Start all services including Celery
 up-monitoring: ## Start all services including Flower
 	$(DC) --profile celery --profile monitoring up -d
 
+up-mq: ## Start services including RabbitMQ
+	$(DC) --profile mq up -d
+
+up-graph: ## Start services including Neo4j
+	$(DC) --profile graph up -d
+
+up-vector: ## Start services including pgvector
+	$(DC) --profile vector up -d
+
+up-storage: ## Start services including SeaweedFS (S3-compatible storage)
+	$(DC) --profile storage up -d
+
 down: ## Stop all services
 	$(DC) down
 
@@ -90,7 +102,7 @@ build: ## Build Docker images
 	$(DC) build
 
 build-prod: ## Build production Docker image
-	$(DC) -f docker-compose.prod.yml build
+	$(DC_PROD) build
 
 restart: ## Restart API container
 	$(DC) restart api
@@ -168,8 +180,8 @@ test-e2e: ## Run E2E tests
 test-ml: ## Run ML tests
 	$(UV) run pytest -m ml
 
-test-watch: ## Run tests in watch mode
-	$(UV) run pytest --watch
+test-watch: ## Re-run fast tests when app/ or tests/ change
+	$(UV) run watchfiles --filter python 'pytest -m "not slow" -x' app tests
 
 test-cov: ## Run tests with coverage report
 	$(UV) run pytest --cov=app --cov-report=html --cov-report=term-missing
@@ -235,8 +247,8 @@ postman-export: openapi-export ## Generate Postman collection from OpenAPI spec
 # =============================================================================
 # ADMIN
 # =============================================================================
-create-superuser: ## Create a superuser account
-	$(UV) run python scripts/create_superuser.py
+create-superuser: ## Create or promote a superuser (usage: make create-superuser EMAIL=a@b.com [PASSWORD=...])
+	SUPERUSER_EMAIL='$(EMAIL)' SUPERUSER_PASSWORD='$(PASSWORD)' $(UV) run python scripts/create_superuser.py
 
 generate: ## Scaffold a new feature module (usage: make generate MODULE=payments)
 	@[ -n "$(MODULE)" ] || (echo "Usage: make generate MODULE=<name>" && exit 1)
@@ -249,7 +261,7 @@ deps-update: ## Update all dependencies
 	$(UV) lock --upgrade
 
 deps-audit: ## Audit dependencies for vulnerabilities
-	$(UV) run pip-audit
+	$(UV) tool run pip-audit
 
 deps-tree: ## Show dependency tree
 	$(UV) tree
@@ -281,3 +293,29 @@ dev-reset: ## Full dev reset: stop → remove volumes → start → migrate → 
 	$(MAKE) migrate
 	$(MAKE) seed
 	@echo "✓ Dev environment reset complete"
+
+# =============================================================================
+# RELEASE
+# =============================================================================
+version: ## Show the current project version
+	@$(UV) version --short
+
+bump-patch: ## Bump the patch version in pyproject.toml (0.1.0 -> 0.1.1)
+	$(UV) version --bump patch --no-sync
+
+bump-minor: ## Bump the minor version in pyproject.toml (0.1.0 -> 0.2.0)
+	$(UV) version --bump minor --no-sync
+
+bump-major: ## Bump the major version in pyproject.toml (0.1.0 -> 1.0.0)
+	$(UV) version --bump major --no-sync
+
+release: ## Tag and push the current version (clean tree, main, CHANGELOG entry required)
+	@version=$$($(UV) version --short); \
+	tag="v$$version"; \
+	test -z "$$(git status --porcelain)" || { echo "Error: working tree is not clean"; exit 1; }; \
+	test "$$(git rev-parse --abbrev-ref HEAD)" = "main" || { echo "Error: not on main"; exit 1; }; \
+	grep -qF "## [$$version]" CHANGELOG.md || { echo "Error: CHANGELOG.md has no section for $$version"; exit 1; }; \
+	git rev-parse -q --verify "refs/tags/$$tag" >/dev/null && { echo "Error: tag $$tag already exists"; exit 1; }; \
+	git tag -a "$$tag" -m "Release $$tag" && \
+	git push origin "$$tag" && \
+	echo "✓ Pushed $$tag. The Release workflow publishes it."

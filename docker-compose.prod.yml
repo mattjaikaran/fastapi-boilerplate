@@ -59,7 +59,6 @@ services:
       timeout: 10s
       retries: 3
     deploy:
-      replicas: 2
       resources:
         limits:
           memory: 1G
