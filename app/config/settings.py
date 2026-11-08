@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     ML_MODEL_PATH: str = "./models"
     ML_MAX_CONCURRENT_TASKS: int = 4
 
+    # Agents
+    AGENT_DEFAULT_MODEL: str = "claude-sonnet-4-6"
+    AGENT_MAX_STEPS: int = 10
+    AGENT_TIMEOUT_SECONDS: int = 60
+
     @computed_field
     @property
     def is_development(self) -> bool:
