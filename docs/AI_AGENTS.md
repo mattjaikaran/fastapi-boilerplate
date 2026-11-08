@@ -35,7 +35,7 @@ router (app/api)  ->  agent (app/agents)  ->  client (app/services/ai)
 | Setting | Default | Purpose |
 |---|---|---|
 | `AGENT_DEFAULT_MODEL` | `claude-sonnet-4-6` | Model used when a caller does not name one |
-| `AGENT_MAX_STEPS` | `10` | Maximum reason/act iterations per run |
+| `AGENT_MAX_STEPS` | `10` | Maximum reason/act iterations per run; LangGraph uses it as the recursion limit |
 | `AGENT_TIMEOUT_SECONDS` | `60` | Hard wall-clock limit per run |
 
 Read them from `app.config.settings.settings`:
@@ -54,7 +54,7 @@ Provider keys are shared with the existing clients: `ANTHROPIC_API_KEY`, `OPENAI
 
 ## Optional dependency group
 
-`pyproject.toml` has an `agents` extra with the agent frameworks (Pydantic AI today, LangGraph later), so core installs stay lean:
+`pyproject.toml` has an `agents` extra with the agent frameworks (Pydantic AI and LangGraph), so core installs stay lean:
 
 ```bash
 uv sync                  # core only
@@ -95,6 +95,50 @@ asyncio.run(main())
 Export `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` with a matching
 `AGENT_DEFAULT_MODEL`) before running it. Use `build_model("gpt-5")` from
 `app/agents/pydantic_ai/config.py` to override the model for one agent.
+
+## LangGraph
+
+`app/agents/langgraph/` holds:
+
+| File | Contents |
+|---|---|
+| `config.py` | `recursion_limit()` from `AGENT_MAX_STEPS`, and `postgres_checkpointer()` built from `DATABASE_URL` |
+| `example_graph.py` | `ExampleState` (typed state), the `draft` and `review` nodes, a conditional edge back to `draft`, and `build_graph()` |
+
+Nothing is compiled at import time, so importing the module needs no API key and no database. Checkpoints use the same Postgres database as the app; `postgres_checkpointer()` converts the app's `postgresql+asyncpg://` DSN to the libpq form psycopg expects and creates the checkpoint tables on entry (idempotent).
+
+Run the example with a `thread_id` — reuse it to resume a run, use a new one for a fresh conversation:
+
+```python
+import asyncio
+
+from app.agents.langgraph.config import postgres_checkpointer, recursion_limit
+from app.agents.langgraph.example_graph import build_graph
+
+
+async def main() -> None:
+    async with postgres_checkpointer() as checkpointer:
+        graph = build_graph(checkpointer)
+        result = await graph.ainvoke(
+            {"messages": [("user", "Explain our rate limiter in two sentences.")]},
+            config={
+                "configurable": {"thread_id": "demo-thread-1"},
+                "recursion_limit": recursion_limit(),
+            },
+        )
+        print(result["messages"][-1].text)
+
+
+asyncio.run(main())
+```
+
+`messages` is the only required key: `drafts` and `approved` default to `0` and `False`, so the call above works without them. Passing the full initial state `{"messages": [...], "drafts": 0, "approved": False}` is equivalent. A resumed thread keeps its `drafts` count, so it continues with whatever retry budget the last run left (the `review`/`route` nodes stop once `drafts` reaches `MAX_DRAFTS`); start a new `thread_id` to reset the count.
+
+The `draft` node builds `ChatAnthropic` on each call with `AGENT_DEFAULT_MODEL` and `AGENT_TIMEOUT_SECONDS`, so a missing `ANTHROPIC_API_KEY` fails at run time, not at import. To swap in a different graph, keep the same shape: typed state, `build_graph(checkpointer)`, and the recursion limit from `config.recursion_limit()`.
+
+Long runs belong on the `ml` Celery queue; keep HTTP handlers to a single short graph invocation.
+
+---
 
 ## Adding an agent
 
