@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     APP_ENV: Literal["development", "production", "test"] = "development"
     APP_DEBUG: bool = False
     APP_HOST: str = "0.0.0.0"
-    APP_PORT: int = 8000
+    APP_PORT: int = 8100
     APP_WORKERS: int = 1
     APP_LOG_LEVEL: str = "info"
     APP_VERSION: str = "0.1.0"

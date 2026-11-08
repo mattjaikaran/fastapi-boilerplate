@@ -47,7 +47,7 @@ echo ""
 echo "--- Services ---"
 check "PostgreSQL reachable" "docker compose ps db | grep -q 'healthy'"
 check "Redis reachable" "docker compose ps redis | grep -q 'healthy'"
-warn "API reachable" "curl -sf http://localhost:8000/api/health/live"
+warn "API reachable" "curl -sf http://localhost:8100/api/health/live"
 
 echo ""
 echo "--- Dependencies ---"

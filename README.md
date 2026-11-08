@@ -148,11 +148,13 @@ make dev
 
 | URL | Description |
 |---|---|
-| `http://localhost:8000/api/` | REST API |
-| `http://localhost:8000/docs` | Swagger UI (dev only) |
-| `http://localhost:8000/redoc` | ReDoc |
-| `http://localhost:8000/admin` | SQLAdmin panel |
-| `http://localhost:8000/metrics` | Prometheus metrics |
+| `http://localhost:8100/api/` | REST API |
+| `http://localhost:8100/docs` | Swagger UI (dev only) |
+| `http://localhost:8100/redoc` | ReDoc |
+| `http://localhost:8100/admin` | SQLAdmin panel |
+| `http://localhost:8100/metrics` | Prometheus metrics |
+
+Default port is 8100 so the API runs beside Django on 8000.
 
 Or in one command:
 
@@ -479,7 +481,7 @@ Production image:
 
 ```bash
 docker build -t my-api .
-docker run -p 8000:8000 --env-file .env.prod my-api
+docker run -p 8100:8100 --env-file .env.prod my-api
 ```
 
 In `production` mode: Swagger/ReDoc disabled, JSON logging, debug off, secret key validation enforced.

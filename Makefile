@@ -37,15 +37,15 @@ quickstart: setup ## Clone-to-running: setup + start + migrate + seed
 	@sleep 5
 	$(MAKE) migrate
 	$(MAKE) seed
-	@echo "\n✓ App running at http://localhost:8000"
-	@echo "✓ Docs at http://localhost:8000/docs"
-	@echo "✓ Admin at http://localhost:8000/admin"
+	@echo "\n✓ App running at http://localhost:8100"
+	@echo "✓ Docs at http://localhost:8100/docs"
+	@echo "✓ Admin at http://localhost:8100/admin"
 
 # =============================================================================
 # DEVELOPMENT
 # =============================================================================
 dev: ## Run dev server with hot reload (no Docker)
-	$(UV) run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	$(UV) run uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
 
 dev-worker: ## Run Celery worker locally
 	$(UV) run celery -A app.workers.celery_app worker --loglevel=debug -Q default,email,notifications,ml
@@ -99,10 +99,10 @@ status: ## Show container status
 	$(DC) ps
 
 health: ## Check health endpoints
-	@curl -sf http://localhost:8000/api/health/live | python -m json.tool || echo "API not reachable"
+	@curl -sf http://localhost:8100/api/health/live | python -m json.tool || echo "API not reachable"
 
 ready: ## Check readiness endpoint
-	@curl -sf http://localhost:8000/api/health/ready | python -m json.tool || echo "API not ready"
+	@curl -sf http://localhost:8100/api/health/ready | python -m json.tool || echo "API not ready"
 
 # =============================================================================
 # DATABASE
@@ -181,7 +181,7 @@ test-parallel: ## Run tests in parallel
 	$(UV) run pytest -n auto
 
 test-load: ## Run load tests (requires app running)
-	$(UV) run locust -f scripts/load_tests.py --host=http://localhost:8000 --users=50 --spawn-rate=5 --run-time=60s --headless
+	$(UV) run locust -f scripts/load_tests.py --host=http://localhost:8100 --users=50 --spawn-rate=5 --run-time=60s --headless
 
 # =============================================================================
 # CODE QUALITY
@@ -218,8 +218,8 @@ openapi-export: ## Export OpenAPI spec to JSON
 	@echo "✓ OpenAPI spec saved to docs/openapi.json"
 
 openapi-serve: ## Serve OpenAPI docs
-	@echo "Docs: http://localhost:8000/docs"
-	@echo "ReDoc: http://localhost:8000/redoc"
+	@echo "Docs: http://localhost:8100/docs"
+	@echo "ReDoc: http://localhost:8100/redoc"
 
 bruno-export: openapi-export ## Generate Bruno collection from OpenAPI spec
 	@echo "✓ OpenAPI spec at docs/openapi.json — import into Bruno via:"

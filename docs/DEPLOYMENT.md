@@ -18,12 +18,14 @@ Services started by `make up`:
 
 | Service | Port | Notes |
 |---|---|---|
-| `api` | 8000 | FastAPI (uvicorn, hot reload in dev) |
+| `api` | 8100 | FastAPI (uvicorn, hot reload in dev) |
 | `db` | 5432 | PostgreSQL 17 |
 | `redis` | 6379 | Redis 7 |
 | `worker` | — | Celery worker (optional profile) |
 | `beat` | — | Celery beat (optional profile) |
 | `flower` | 5555 | Celery monitor (optional profile) |
+
+Default port is 8100 so the API runs beside Django on 8000.
 
 ### Production
 
@@ -64,7 +66,7 @@ docker build --target ci -t my-api:ci .
 
 # Run production
 docker run \
-  -p 8000:8000 \
+  -p 8100:8100 \
   --env-file .env.prod \
   --restart unless-stopped \
   my-api
@@ -222,14 +224,14 @@ Kubernetes probe config:
 livenessProbe:
   httpGet:
     path: /api/health/live
-    port: 8000
+    port: 8100
   initialDelaySeconds: 10
   periodSeconds: 30
 
 readinessProbe:
   httpGet:
     path: /api/health/ready
-    port: 8000
+    port: 8100
   initialDelaySeconds: 5
   periodSeconds: 10
   failureThreshold: 3
@@ -241,7 +243,7 @@ readinessProbe:
 
 ```nginx
 upstream api {
-    server 127.0.0.1:8000;
+    server 127.0.0.1:8100;
 }
 
 server {
@@ -316,7 +318,7 @@ Scheduled tasks (from `celery_app.py`):
 scrape_configs:
   - job_name: fastapi
     static_configs:
-      - targets: ["api:8000"]
+      - targets: ["api:8100"]
     metrics_path: /metrics
     scrape_interval: 15s
 ```
