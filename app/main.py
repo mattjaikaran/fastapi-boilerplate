@@ -89,8 +89,10 @@ def _register_events(app: FastAPI) -> None:
     @app.on_event("shutdown")
     async def on_shutdown() -> None:
         from app.config.database import engine
+        from app.services.integrations.ninja_client import close_ninja_client
 
         await engine.dispose()
+        await close_ninja_client()
         await logger.ainfo("app_stopped")
 
 
