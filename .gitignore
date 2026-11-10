@@ -37,6 +37,10 @@ docker/postgres/dumps/
 *.swo
 .DS_Store
 
+# Agent tooling (personal files only)
+.claude/settings.local.json
+.mcp.local.json
+
 # App
 uploads/
 logs/

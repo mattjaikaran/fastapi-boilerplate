@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- `AGENTS.md` as the single source of agent instructions, with
+  `scripts/check_agent_docs.py` (`make agent-docs`) in CI and pre-commit to fail
+  when the file is missing, a relative link does not resolve, `CLAUDE.md` holds
+  prose, or a skill lacks `name`/`description` frontmatter.
+
 ## [0.1.0] - 2026-11-08
 
 First tagged release.

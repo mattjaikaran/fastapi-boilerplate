@@ -28,3 +28,12 @@ repos:
     rev: 0.13.7
     hooks:
       - id: uv-lock
+
+  - repo: local
+    hooks:
+      - id: agent-docs
+        name: agent docs
+        entry: python3 scripts/check_agent_docs.py
+        language: system
+        files: ^(AGENTS|CLAUDE)\.md$|^\.claude/skills/.*/SKILL\.md$
+        pass_filenames: false

@@ -563,6 +563,7 @@ For the required environment variables (`APP_ENV=test`, `RATE_LIMIT_ENABLED=fals
 
 | Doc | Contents |
 |---|---|
+| [AGENTS.md](AGENTS.md) | Agent instructions: commands, standards, testing, git and security |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local setup with and without Docker, migrations, tests, pre-commit |
 | [docs/SERVICES.md](docs/SERVICES.md) | Every Compose service: profile, Make target, ports, env vars |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagrams, middleware stack, data model, service layer |
