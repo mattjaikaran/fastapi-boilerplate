@@ -1,6 +1,8 @@
 # AI & Agents
 
-Where AI code lives and the rules for adding agent workloads.
+Where AI code lives and the rules for adding agent workloads. This documents
+the application's AI packages; repository agent instructions live in
+[AGENTS.md](../AGENTS.md).
 
 ---
 

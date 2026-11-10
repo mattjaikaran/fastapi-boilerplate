@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help version bump-patch bump-minor bump-major release
+.PHONY: help version bump-patch bump-minor bump-major release agent-docs
 
 # =============================================================================
 # CONFIG
@@ -220,6 +220,9 @@ pre-commit: ## Run pre-commit hooks
 
 pre-commit-install: ## Install pre-commit hooks
 	$(UV) run pre-commit install
+
+agent-docs: ## Check AGENTS.md exists and its links resolve
+	$(PYTHON) scripts/check_agent_docs.py
 
 # =============================================================================
 # OPENAPI

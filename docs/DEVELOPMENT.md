@@ -217,12 +217,13 @@ make lint-fix         # ruff check --fix
 make format           # ruff format
 make typecheck        # mypy
 make check            # lint, format-check, typecheck
+make agent-docs       # AGENTS.md exists, stays under 200 lines, links resolve
 make ci               # check, then tests with coverage
 ```
 
 ### Pre-commit hooks
 
-The repository includes `.pre-commit-config.yaml`. The hooks check whitespace, YAML and TOML syntax, merge conflicts, large files, and private keys. They also run Ruff on `app/` and `tests/`, and check that `uv.lock` is current.
+The repository includes `.pre-commit-config.yaml`. The hooks check whitespace, YAML and TOML syntax, merge conflicts, large files, and private keys. They also run Ruff on `app/` and `tests/`, check that `uv.lock` is current, and run the agent-doc check.
 
 ```bash
 make pre-commit-install   # install the git hook once
