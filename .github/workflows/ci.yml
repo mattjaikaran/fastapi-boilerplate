@@ -58,6 +58,10 @@ jobs:
 
   agent-docs:
     name: Agent docs
+    # Runs for every change that is not a fork PR, including docs-only ones:
+    # it gates on nothing but the `changes` job's fork guard.
+    needs: changes
+    if: needs.changes.result == 'success'
     runs-on: [self-hosted, Linux, X64, fastapi-boilerplate]
     timeout-minutes: 5
     steps:
