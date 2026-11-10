@@ -144,8 +144,8 @@ facts stay here.
 ## Enforcement
 
 - [.github/workflows/ci.yml](.github/workflows/ci.yml) runs
-  `scripts/check_agent_docs.py` on every push and pull request, plus ruff, mypy,
-  pytest, and the Docker build.
+  `scripts/check_agent_docs.py` on every push and same-repo pull request, plus
+  ruff, mypy, pytest, and the Docker build.
 - [.pre-commit-config.yaml](.pre-commit-config.yaml) runs whitespace,
   YAML/TOML, merge-conflict, large-file and secret checks, ruff, `uv-lock`, and
   the agent-doc check.
