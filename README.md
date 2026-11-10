@@ -340,10 +340,10 @@ Query params: `search`, `priority` (low/medium/high), `completed`, `overdue`, `d
 | GET | `/api/health/ready` | — | Readiness probe (DB + Redis) |
 | GET | `/api/health/info` | — | App version + environment |
 | GET | `/metrics` | — | Prometheus metrics |
-| GET | `/docs` | — | Swagger UI (non-production only) |
+| GET | `http://localhost:8100/docs` | — | Swagger UI (non-production only) |
 | GET | `/admin` | Admin | SQLAdmin panel |
 
-The full, current list of routes is in [docs/openapi.json](docs/openapi.json). Regenerate it with `make openapi-export`.
+The full, current list of routes is exported by `make openapi-export` to `docs/openapi.json` (git-ignored).
 
 ---
 
@@ -577,4 +577,4 @@ For the required environment variables (`APP_ENV=test`, `RATE_LIMIT_ENABLED=fals
 | [docs/GRAPH.md](docs/GRAPH.md) | Optional Neo4j graph database and client |
 | [FEATURE_GENERATION.md](FEATURE_GENERATION.md) | How to scaffold a new API module |
 | [.env.example](.env.example) | All environment variables with descriptions |
-| [docs/openapi.json](docs/openapi.json) | Exported OpenAPI spec |
+| `docs/openapi.json` | Exported OpenAPI spec (`make openapi-export`) |

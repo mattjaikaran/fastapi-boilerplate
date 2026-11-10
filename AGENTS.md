@@ -93,7 +93,8 @@ variables and the database setup are in
 - A behavior change updates the test that covers it. Doc-only and tooling-only
   changes need the checks above, not a new test.
 - Markers are `unit`, `integration`, `e2e`, `slow`, `smoke`, and `ml`; run them
-  with the matching `make test-*` target (for example `make test-smoke`).
+  with the matching `make test-unit`, `make test-integration`, `make test-e2e`,
+  `make test-smoke` or `make test-ml` target (for example `make test-smoke`).
 - The agent-run gate runs lint, typecheck, build, smoke, and e2e only; it never
   runs the unit-test suite. Do not add or change unit tests to satisfy it.
 
