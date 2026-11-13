@@ -58,11 +58,13 @@ test-unit:
 test-integration:
     make test-integration
 
+# Settings need SECRET_KEY and JWT_SECRET_KEY before tests/conftest.py loads;
+# these values match the test env in .github/workflows/ci.yml.
 test-smoke:
-    make test-smoke
+    APP_ENV=test SECRET_KEY=ci-secret-key-32-chars-minimum-here JWT_SECRET_KEY=ci-jwt-secret-key-32-chars-minimum make test-smoke
 
 test-e2e:
-    make test-e2e
+    APP_ENV=test SECRET_KEY=ci-secret-key-32-chars-minimum-here JWT_SECRET_KEY=ci-jwt-secret-key-32-chars-minimum make test-e2e
 
 test-ml:
     make test-ml
