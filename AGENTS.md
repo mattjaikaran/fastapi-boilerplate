@@ -1,10 +1,9 @@
 # Agent instructions
 
-Single source of agent instructions for this repository. Any agent, editor, or
-tool reads this file; a `CLAUDE.md` may only import it. Add a nested `AGENTS.md`
-only when a package gains its own commands or rules; the nearest file then
-wins. Long reference material stays in [docs/](docs/); keep this file under 200
-lines.
+Backend instructions for this repository. The root AGENTS.md covers global rules
+such as commits, branches, and secrets. Add a nested `AGENTS.md` only when a
+package gains its own commands or rules; the nearest file then wins. Long
+reference material stays in [docs/](docs/); keep this file under 200 lines.
 
 ## Project overview
 
@@ -27,32 +26,34 @@ Compose for services.
 
 System design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Auth flows and
 RBAC: [docs/AUTH.md](docs/AUTH.md). Optional services:
-[docs/SERVICES.md](docs/SERVICES.md).
+[docs/SERVICES.md](docs/SERVICES.md). Release flow:
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## Commands
 
-Targets are defined in the [Makefile](Makefile); `make help` lists them.
+Recipes are in the [justfile](justfile); `just` lists them. Each recipe runs the
+[Makefile](Makefile) target of the same name, or the command it names.
 Prerequisites: Python 3.13, [`uv`](https://docs.astral.sh/uv/), Docker with the
-Compose plugin, and `make`.
+Compose plugin, `make`, and [`just`](https://just.systems/).
 
 | Task | Command |
 | --- | --- |
-| Install dependencies and create `.env` | `./scripts/setup.sh` (or `make setup`, which copies `.env` without secrets) |
-| Check the environment | `./scripts/doctor.sh` |
-| Start Postgres, Redis, and the API | `make up` — API on http://localhost:8100 |
-| Run the API on the host | `make dev` (Postgres and Redis in Docker) |
-| Apply migrations | `make migrate` (Docker) or `make migrate-local` (host) |
-| Seed sample data | `make seed` (Docker) or `make seed-local` (host) |
-| Build the Docker image | `make build` (production image: `make build-prod`) |
-| Lint and format check | `make lint`, `make format-check`; both plus mypy: `make check` |
-| Type check | `make typecheck` |
-| Smoke and e2e tests | `make test-smoke`, `make test-e2e` (need the database and Redis) |
-| Pre-commit hooks | `make pre-commit-install` once, then `make pre-commit` |
-| Check agent docs | `make agent-docs` |
-| Scaffold a module | `make generate MODULE=payments` |
-| Health checks | `make health`, `make ready` |
+| Install dependencies and create `.env` | `just setup` |
+| Check the environment | `just doctor` |
+| Start Postgres, Redis, and the API | `just up` — API on http://localhost:8100 |
+| Run the API on the host | `just dev` (Postgres and Redis in Docker) |
+| Apply migrations | `just migrate` (Docker) or `just migrate-local` (host) |
+| Seed sample data | `just seed` (Docker) or `just seed-local` (host) |
+| Build the Docker image | `just build` (production image: `just build-prod`) |
+| Lint and format check | `just lint`, `just format-check`; both plus mypy: `just check` |
+| Type check | `just typecheck` |
+| Smoke and e2e tests | `just test-smoke`, `just test-e2e` (need the database and Redis) |
+| Pre-commit hooks | `just pre-commit-install` once, then `just pre-commit` |
+| Check agent docs | `just agent-docs` |
+| Scaffold a module | `just generate payments` |
+| Health checks | `just health`, `just ready` |
 
-`make up` and `make dev` both bind port 8100; never run both. Test environment
+`just up` and `just dev` both bind port 8100; never run both. Test environment
 variables and the database setup are in
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#run-tests).
 
@@ -70,6 +71,11 @@ variables and the database setup are in
   its router in `app/api/router.py`.
 - Read configuration through `app.config.settings.settings`; never hard-code
   secrets, URLs, ports, or provider keys.
+- `SECRET_KEY` and `JWT_SECRET_KEY` need at least 32 characters and must differ
+  from the example values. Production also needs `DEBUG=False` and
+  `ALLOWED_HOSTS`; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- Never disable authentication, rate limits, or permission checks to make a
+  request pass.
 - Type-annotate public functions and service methods. Keep business logic out
   of routers and middleware.
 - Update the docs a change touches: [docs/](docs/) for guides, [README.md](README.md)
@@ -78,11 +84,11 @@ variables and the database setup are in
 ## Database and migrations
 
 - Alembic owns the schema. After a model change, run
-  `make migration msg="describe the change"`, review the generated file in
+  `just migration "describe the change"`, review the generated file in
   `migrations/versions/`, then apply it.
 - Keep one head and a linear chain. Never create a merge revision and never
   edit a revision that is already on `main`; add a new one instead.
-- Run `uv run alembic check` before committing a model change; it must report
+- Run `just migration-check` before committing a model change; it must report
   no differences. Full workflow: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#migrations).
 
 ## Testing policy
@@ -93,53 +99,10 @@ variables and the database setup are in
 - A behavior change updates the test that covers it. Doc-only and tooling-only
   changes need the checks above, not a new test.
 - Markers are `unit`, `integration`, `e2e`, `slow`, `smoke`, and `ml`; run them
-  with the matching `make test-unit`, `make test-integration`, `make test-e2e`,
-  `make test-smoke` or `make test-ml` target (for example `make test-smoke`).
+  with the matching `just test-unit`, `just test-integration`, `just test-e2e`,
+  `just test-smoke` or `just test-ml` recipe (for example `just test-smoke`).
 - The agent-run gate runs lint, typecheck, build, smoke, and e2e only; it never
-  runs the unit-test suite. Do not add or change unit tests to satisfy it.
-
-## Git and commits
-
-- Conventional Commits: `type(scope): Imperative summary` with a subject of at
-  most 50 characters and a body wrapped at 72. Types: `feat`, `fix`, `chore`,
-  `docs`, `test`, `refactor`, `ci`, `build`, `style`, `perf`.
-- One logical change per commit; leave `git status` clean before you stop.
-- Do not rewrite history on shared branches or force-push them.
-- Release flow: [docs/RELEASING.md](docs/RELEASING.md).
-
-## Agent-run spec workflow
-
-- Work only the issue or spec you were given; its acceptance criteria define
-  done. Stay inside the files the task names.
-- Branch `agent/issue-<n>`. The pull request title is one plain-English,
-  sentence-case, imperative line of at most 72 characters, with no spec ID and
-  no `type(scope):` prefix.
-- Do not push or open the pull request yourself; the agent-run gate pushes
-  after the static checks, smoke tests, and e2e tests pass.
-- Specs, when a task ships one, live under `tasks/specs/`; its `README.md`
-  names the files each spec owns. This repository has none yet, so agent-run
-  tasks here are GitHub issues.
-- Verify with the commands above and report the command and its result.
-
-## Security
-
-- Secrets come from the environment. `.env` is gitignored; copy
-  [.env.example](.env.example) and never commit a real key. Pre-commit runs
-  `detect-private-key`.
-- `SECRET_KEY` and `JWT_SECRET_KEY` need at least 32 characters and must differ
-  from the example values. Production also needs `DEBUG=False` and
-  `ALLOWED_HOSTS`; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-- Never log tokens, passwords, or API keys. Never disable authentication, rate
-  limits, or permission checks to make a request pass.
-- Keep personal agent files (`.claude/settings.local.json`, `.mcp.local.json`)
-  out of git.
-
-## Skills
-
-No skills are defined yet. If one is added, it lives in
-`.claude/skills/<name>/SKILL.md` with `name` and `description` frontmatter, so
-only the description loads until the skill is used. Procedures go in skills;
-facts stay here.
+  runs the unit-test suite.
 
 ## Enforcement
 
@@ -147,5 +110,5 @@ facts stay here.
   `scripts/check_agent_docs.py` on every push and same-repo pull request, plus
   ruff, mypy, pytest, and the Docker build.
 - [.pre-commit-config.yaml](.pre-commit-config.yaml) runs whitespace,
-  YAML/TOML, merge-conflict, large-file and secret checks, ruff, `uv-lock`, and
-  the agent-doc check.
+  YAML/TOML, merge-conflict, large-file and secret checks (including
+  `detect-private-key`), ruff, `uv-lock`, and the agent-doc check.

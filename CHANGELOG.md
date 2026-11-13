@@ -14,6 +14,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   when the file is missing, a relative link does not resolve, `CLAUDE.md` holds
   prose, or a skill lacks `name`/`description` frontmatter.
 
+### Changed
+
+- `AGENTS.md` keeps only backend facts; global rules move to the root file. Its
+  commands are `just` recipes, defined in a new `justfile` that delegates to the
+  `Makefile` targets of the same name.
+
 ## [0.1.0] - 2026-11-08
 
 First tagged release.
